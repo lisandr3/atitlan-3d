@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Cuenca del Lago de Atitlán - Visor 3D</title>
-
 <style>
+:root {
+    --rail-w: clamp(360px, 29vw, 430px);
+    --panel-bg: rgba(16, 26, 31, 0.76);
+    --ink: #172027;
+    --accent: #294d5d;
+}
 
-html,
-body {
+* { box-sizing: border-box; }
+html, body {
     margin: 0;
     width: 100%;
     height: 100%;
@@ -18,8 +21,32 @@ body {
     background: #b9ced3;
     font-family: Arial, Helvetica, sans-serif;
 }
+body { color: var(--ink); }
+
+/* =========================================================
+   ÁREA DEL MODELO
+   La ficha queda FUERA de esta área cuando está abierta.
+========================================================= */
+#stage {
+    position: fixed;
+    inset: 0;
+    right: 0;
+    overflow: hidden;
+    background: #b9ced3;
+    transition: right 320ms ease;
+}
+
+body.info-open #stage {
+    right: var(--rail-w);
+}
 
 #visor {
+    position: absolute;
+    inset: 0;
+}
+
+#visor canvas {
+    display: block;
     width: 100%;
     height: 100%;
 }
@@ -27,3989 +54,1239 @@ body {
 /* =========================================================
    PANEL GENERAL
 ========================================================= */
-
 #panel {
     position: absolute;
-    top: 18px;
-    left: 18px;
-    z-index: 30;
-
+    top: 14px;
+    left: 14px;
+    z-index: 40;
     color: white;
-    background: rgba(10, 18, 22, 0.68);
-
-    padding: 14px 18px;
+    background: var(--panel-bg);
+    padding: 13px 17px;
     border-radius: 12px;
-
-    backdrop-filter: blur(7px);
-
-    min-width: 270px;
-
-    box-shadow:
-        0 6px 20px rgba(0,0,0,0.20);
+    backdrop-filter: blur(8px);
+    min-width: 278px;
+    box-shadow: 0 7px 22px rgba(0,0,0,0.20);
+    pointer-events: none;
 }
 
 #panel h2 {
-    margin: 0 0 6px 0;
+    margin: 0 0 5px 0;
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 #estado {
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.35;
 }
 
 #ayuda {
     margin-top: 8px;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.5;
-    opacity: 0.85;
+    opacity: .86;
 }
 
 /* =========================================================
    CONTROLES
 ========================================================= */
-
 #controles {
     position: absolute;
-    right: 20px;
-    bottom: 20px;
-
-    z-index: 30;
-
-    color: white;
-    background: rgba(10,18,22,0.68);
-
-    padding: 12px 16px;
-
-    border-radius: 10px;
-
-    font-size: 13px;
-    line-height: 1.6;
-
-    backdrop-filter: blur(7px);
-}
-
-/* =========================================================
-   ETIQUETA FLOTANTE
-========================================================= */
-
-#etiqueta {
-    position: absolute;
-
+    right: 18px;
+    bottom: 18px;
     z-index: 40;
-
-    width: 300px;
-
-    display: none;
-
-    color: #172027;
-
-    background: rgba(255,255,255,0.96);
-
-    border-radius: 12px;
-
-    padding: 14px 16px;
-
-    box-shadow:
-        0 8px 28px rgba(0,0,0,0.28);
-
-    transform:
-        translate(-50%, calc(-100% - 24px));
-
-    pointer-events: auto;
-
-    transition:
-        opacity 0.25s ease;
+    color: white;
+    background: var(--panel-bg);
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.62;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 7px 22px rgba(0,0,0,0.16);
+    pointer-events: none;
 }
 
-#etiqueta::after {
+/* =========================================================
+   FICHA LATERAL: NO CUBRE EL MODELO
+========================================================= */
+#infoRail {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--rail-w);
+    z-index: 70;
+    padding: 18px;
+    background: rgba(231, 238, 240, 0.98);
+    border-left: 1px solid rgba(32, 55, 65, 0.15);
+    box-shadow: -10px 0 30px rgba(20, 35, 42, 0.16);
+    transform: translateX(100%);
+    transition: transform 320ms ease;
+    overflow: hidden;
+}
 
-    content: "";
+body.info-open #infoRail {
+    transform: translateX(0);
+}
 
+#infoCard {
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+    background: rgba(255,255,255,.97);
+    border-radius: 16px;
+    padding: 22px 22px 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.14);
+}
+
+#cerrarInfo {
     position: absolute;
-
-    bottom: -14px;
-
-    left: 50%;
-
-    transform:
-        translateX(-50%);
-
-    border-left:
-        10px solid transparent;
-
-    border-right:
-        10px solid transparent;
-
-    border-top:
-        15px solid rgba(255,255,255,0.96);
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: #e8edef;
+    color: #233740;
+    font-size: 21px;
+    line-height: 34px;
+    cursor: pointer;
 }
 
-.etiqueta-codigo {
+#cerrarInfo:hover { background: #dbe4e7; }
 
+#infoCodigo {
     display: inline-block;
-
-    padding:
-        4px 8px;
-
-    margin-bottom:
-        7px;
-
-    border-radius:
-        6px;
-
-    background:
-        #253b46;
-
-    color:
-        white;
-
-    font-size:
-        12px;
-
-    font-weight:
-        bold;
+    padding: 5px 9px;
+    margin: 1px 42px 8px 0;
+    border-radius: 6px;
+    background: #253b46;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
 }
 
-#etiquetaTitulo {
-
-    font-size:
-        17px;
-
-    font-weight:
-        700;
-
-    line-height:
-        1.2;
-
-    margin-bottom:
-        7px;
+#infoTitulo {
+    margin: 0 36px 14px 0;
+    color: #172027;
+    font-size: 24px;
+    line-height: 1.13;
 }
 
-#etiquetaResumen {
-
-    font-size:
-        13px;
-
-    line-height:
-        1.45;
-
-    text-align:
-        justify;
-
-    color:
-        #39464d;
+.info-section {
+    margin-top: 17px;
+    padding-top: 15px;
+    border-top: 1px solid #dce4e7;
 }
 
-#verMas {
+.info-section:first-of-type {
+    margin-top: 8px;
+}
 
-    margin-top:
-        10px;
+.info-section h4 {
+    margin: 0 0 7px;
+    color: #294d5d;
+    font-size: 13px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
 
-    border:
-        none;
+.info-section p {
+    margin: 0;
+    color: #34434a;
+    font-size: 14px;
+    line-height: 1.62;
+    text-align: justify;
+}
 
-    border-radius:
-        7px;
+#infoLitologia {
+    background: #eef3f4;
+    border-radius: 9px;
+    padding: 11px 12px;
+    color: #33444c;
+    font-size: 13px;
+    line-height: 1.48;
+}
 
-    padding:
-        7px 11px;
-
-    cursor:
-        pointer;
-
-    background:
-        #294d5d;
-
-    color:
-        white;
-
-    font-size:
-        12px;
+#infoFuente {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #66757b;
 }
 
 /* =========================================================
-   PANEL DETALLADO
+   CALLOUT 3D -> FICHA
 ========================================================= */
-
-#ficha {
-
-    position: absolute;
-
-    top: 50%;
-
-    right: 28px;
-
-    transform:
-        translateY(-50%);
-
-    z-index: 50;
-
-    display:
-        none;
-
-    width:
-        min(390px, calc(100vw - 60px));
-
-    max-height:
-        72vh;
-
-    overflow-y:
-        auto;
-
-    background:
-        rgba(255,255,255,0.97);
-
-    color:
-        #172027;
-
-    padding:
-        20px 22px;
-
-    border-radius:
-        14px;
-
-    box-shadow:
-        0 12px 40px rgba(0,0,0,0.32);
-
-    backdrop-filter:
-        blur(8px);
+#calloutSvg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 60;
+    pointer-events: none;
+    overflow: visible;
 }
 
-#fichaCodigo {
-
-    display:
-        inline-block;
-
-    padding:
-        5px 9px;
-
-    border-radius:
-        6px;
-
-    background:
-        #243c49;
-
-    color:
-        white;
-
-    font-size:
-        12px;
-
-    font-weight:
-        bold;
+#calloutLine {
+    fill: none;
+    stroke: rgba(36, 61, 73, .92);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 1px 2px rgba(255,255,255,.75));
 }
 
-#ficha h3 {
-
-    margin:
-        10px 0 12px 0;
-
-    font-size:
-        20px;
-
-    line-height:
-        1.25;
+#calloutHalo {
+    fill: rgba(255,255,255,.96);
+    stroke: rgba(36, 61, 73, .94);
+    stroke-width: 3;
 }
 
-#fichaLitologia {
-
-    padding:
-        10px 12px;
-
-    margin-bottom:
-        12px;
-
-    background:
-        #eef2f3;
-
-    border-radius:
-        8px;
-
-    font-size:
-        13px;
-
-    line-height:
-        1.45;
-}
-
-#fichaTexto {
-
-    font-size:
-        14px;
-
-    line-height:
-        1.62;
-
-    text-align:
-        justify;
-}
-
-#cerrarFicha {
-
-    margin-top:
-        16px;
-
-    width:
-        100%;
-
-    padding:
-        9px;
-
-    border:
-        none;
-
-    border-radius:
-        8px;
-
-    background:
-        #293f49;
-
-    color:
-        white;
-
-    cursor:
-        pointer;
+#calloutCore {
+    fill: #294d5d;
 }
 
 /* =========================================================
-   MARCADOR 3D
+   RESPONSIVE
 ========================================================= */
-
-#marcador {
-
-    position:
-        absolute;
-
-    width:
-        12px;
-
-    height:
-        12px;
-
-    border-radius:
-        50%;
-
-    background:
-        white;
-
-    border:
-        3px solid #233d49;
-
-    box-shadow:
-        0 2px 10px rgba(0,0,0,0.4);
-
-    transform:
-        translate(-50%, -50%);
-
-    display:
-        none;
-
-    z-index:
-        39;
-
-    pointer-events:
-        none;
+@media (max-width: 900px) {
+    :root { --rail-w: 100vw; }
+    body.info-open #stage { right: 0; bottom: 46vh; }
+    #infoRail {
+        top: auto;
+        width: 100vw;
+        height: 46vh;
+        padding: 10px;
+        transform: translateY(100%);
+        border-left: 0;
+        border-top: 1px solid rgba(32,55,65,.15);
+    }
+    body.info-open #infoRail { transform: translateY(0); }
+    #infoCard { padding: 18px; }
+    #infoTitulo { font-size: 20px; }
+    #controles { font-size: 11px; }
 }
-
 </style>
-
 </head>
-
-
 <body>
 
+<div id="stage">
+    <div id="visor"></div>
 
-<div id="panel">
-
-    <h2>
-        Cuenca del Lago de Atitlán
-    </h2>
-
-    <div id="estado">
-        Cargando DEM...
+    <div id="panel">
+        <h2>Cuenca del Lago de Atitlán</h2>
+        <div id="estado">Cargando DEM...</div>
+        <div id="ayuda">
+            Arrastrar: rotar · rueda: zoom<br>
+            Clic derecho: desplazar · Esc: ocultar ficha
+        </div>
     </div>
 
-    <div id="ayuda">
-        Arrastrar: rotar · rueda: zoom<br>
-        Clic derecho: desplazar
+    <div id="controles">
+        <b>1–7</b> · Escenas geológicas<br>
+        <b>8</b> · Lago / lecho<br>
+        <b>9</b> · Flora<br>
+        <b>0</b> · Fauna
     </div>
-
 </div>
 
+<aside id="infoRail" aria-hidden="true">
+    <div id="infoCard">
+        <button id="cerrarInfo" type="button" aria-label="Cerrar ficha">×</button>
+        <div id="infoCodigo"></div>
+        <h3 id="infoTitulo"></h3>
 
-<div id="controles">
+        <div class="info-section">
+            <h4>Qué representa</h4>
+            <p id="infoResumen"></p>
+        </div>
 
-    <b>1–7</b> · Escenas geológicas<br>
-    <b>8</b> · Lago / lecho<br>
-    <b>9</b> · Flora<br>
-    <b>0</b> · Fauna
+        <div class="info-section">
+            <h4>Litología cartografiada</h4>
+            <div id="infoLitologia"></div>
+        </div>
 
-</div>
+        <div class="info-section" id="seccionDescripcion">
+            <h4>Descripción del mapa</h4>
+            <p id="infoDescripcion"></p>
+        </div>
 
+        <div class="info-section">
+            <h4>Implicaciones edafológicas y para la vegetación</h4>
+            <p id="infoEdafologia"></p>
+        </div>
 
-<div id="etiqueta">
-
-    <div
-        id="etiquetaCodigo"
-        class="etiqueta-codigo">
+        <div class="info-section">
+            <p id="infoFuente">Interpretación divulgativa apoyada en los atributos del GeoJSON; las implicaciones edafológicas son generales y pueden variar localmente con pendiente, drenaje, clima, uso del suelo y grado de meteorización.</p>
+        </div>
     </div>
+</aside>
 
-    <div id="etiquetaTitulo"></div>
-
-    <div id="etiquetaResumen"></div>
-
-    <button id="verMas">
-        Ver más
-    </button>
-
-</div>
-
-
-<div id="marcador"></div>
-
-
-<div id="ficha">
-
-    <div id="fichaCodigo"></div>
-
-    <h3 id="fichaTitulo"></h3>
-
-    <div id="fichaLitologia"></div>
-
-    <div id="fichaTexto"></div>
-
-    <button id="cerrarFicha">
-        Cerrar
-    </button>
-
-</div>
-
-
-<div id="visor"></div>
-
-
+<svg id="calloutSvg" aria-hidden="true">
+    <polyline id="calloutLine" points=""></polyline>
+    <circle id="calloutHalo" cx="0" cy="0" r="7"></circle>
+    <circle id="calloutCore" cx="0" cy="0" r="3.3"></circle>
+</svg>
 
 <script type="importmap">
 {
-    "imports": {
-
-        "three":
-        "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-
-        "three/addons/":
-        "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
-
-    }
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
 }
 </script>
 
-
-
 <script type="module">
-
-
 import * as THREE from "three";
-
-import {
-    OrbitControls
-}
-from "three/addons/controls/OrbitControls.js";
-
-import {
-    fromUrl
-}
-from "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm";
-
-
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { fromUrl } from "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm";
 
 /* ============================================================
-   CONFIGURACIÓN GENERAL
+   CONFIGURACIÓN
 ============================================================ */
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
-THREE.Object3D.DEFAULT_UP.set(
-    0,
-    0,
-    1
-);
+const RUTA_DEM = "data/DEM_unificado.tif";
+const RUTA_LAGO = "data/lago2.geojson";
+const RUTA_GEOLOGIA = "data/geologia.geojson";
+const RUTA_QML = "data/geologia.qml";
 
-
-const RUTA_DEM =
-    "data/DEM_unificado.tif";
-
-const RUTA_LAGO =
-    "data/lago2.geojson";
-
-const RUTA_GEOLOGIA =
-    "data/geologia.geojson";
-
-const RUTA_QML =
-    "data/geologia.qml";
-
-
-const EXAGERACION_VERTICAL =
-    2.0;
-
-
-const COLUMNAS =
-    450;
-
-
-const TEXTURA_RES =
-    2048;
-
-
-const COTA_LAGO =
-    1562;
-
-
-const PROFUNDIDAD_VACIADO =
-    800;
-
-
-/*
-    El agua se separa un poco
-    de la cota del terreno.
-
-    Esto ayuda a evitar z-fighting.
-*/
-
-const OFFSET_AGUA =
-    14;
-
-
+const EXAGERACION_VERTICAL = 2.0;
+const COLUMNAS = 450;
+const TEXTURA_RES = 2048;
+const COTA_LAGO = 1562;
+const PROFUNDIDAD_VACIADO = 800;
+const OFFSET_AGUA = 14;
 
 /* ============================================================
    ESCENAS GEOLÓGICAS
+   Los textos son interpretativos; los campos reales del GeoJSON
+   se incorporan dinámicamente en la ficha.
 ============================================================ */
-
 const ESCENAS = {
-
     "1": {
-
-        simbolo:
-            "Qpa4",
-
-        resumen:
-            "Depósitos pumíceos asociados a varias erupciones silíceas posteriores al gran evento de Los Chocoyos. Su distribución extensa permite reconocer una etapa eruptiva más joven que recubrió amplias zonas de la cuenca.",
-
-        texto:
-            "Esta unidad reúne depósitos de pómez vinculados a por lo menos cinco erupciones silíceas posteriores al episodio de Los Chocoyos. Está constituida principalmente por cenizas volcánicas y materiales pumíceos claros, que pueden presentar distintos grados de retrabajo y consolidación. Su amplia distribución alrededor de la cuenca permite utilizarla como una referencia para interpretar las etapas eruptivas posteriores a los grandes eventos formadores de depósitos piroclásticos."
-
+        simbolo: "Qpa4",
+        resumen: "Depósitos de pómez y ceniza vinculados a erupciones silíceas posteriores al gran episodio de Los Chocoyos. En el paisaje funcionan como una cubierta volcánica relativamente joven que puede recubrir materiales más antiguos y suavizar parcialmente la expresión de las unidades subyacentes.",
+        edafologia: "Los materiales pumíceos y las cenizas volcánicas suelen generar sustratos muy porosos y de baja densidad aparente. Cuando la ceniza se meteoriza, puede producir suelos con buena retención de agua y abundante materia orgánica, pero también con una fuerte capacidad de fijar fósforo, de modo que la fertilidad química no depende únicamente de que el suelo sea profundo. Las capas gruesas de pómez, en cambio, pueden drenar con rapidez y almacenar menos agua disponible durante la época seca. Para las plantas esto significa una combinación favorable de aireación radicular y facilidad de penetración de raíces, pero con contrastes locales importantes en humedad y nutrientes según el espesor de la ceniza, la proporción de pómez y la pendiente. En laderas fuertes, la erosión puede retirar rápidamente el horizonte superficial fértil si la cobertura vegetal se pierde."
     },
-
-
     "2": {
-
-        simbolo:
-            "Qpf3",
-
-        resumen:
-            "Representa los grandes flujos piroclásticos ignimbríticos de Los Chocoyos, formados por cenizas, lapilli, bombas pumíceas y fragmentos líticos.",
-
-        texto:
-            "La unidad Qpf3 corresponde a depósitos de flujos piroclásticos asociados al evento de Los Chocoyos. Se caracteriza por materiales ignimbríticos no clasificados, con abundante ceniza, lapilli y bombas de pómez, acompañados por fragmentos líticos. Estos depósitos documentan episodios explosivos de gran magnitud y constituyen uno de los elementos fundamentales para interpretar la evolución volcánica y la configuración geológica de la región de Atitlán."
-
+        simbolo: "Qpf3",
+        resumen: "Grandes depósitos de flujo piroclástico asociados al evento de Los Chocoyos. Incluyen ceniza, lapilli, pómez y fragmentos líticos depositados rápidamente por corrientes volcánicas densas y calientes, por lo que constituyen una referencia fundamental para reconstruir la historia explosiva de la cuenca.",
+        edafologia: "Un depósito piroclástico de este tipo es muy heterogéneo: puede contener niveles finos de ceniza, capas pumíceas gruesas y sectores más compactos. Esa heterogeneidad se transmite al suelo. Los niveles finos y meteorizados pueden retener bastante humedad y favorecer el desarrollo de suelos volcánicos ricos en materia orgánica; los niveles gruesos pueden ser más drenantes y pobres en agua disponible. Cuando el material está endurecido o poco meteorizado, la profundidad efectiva de raíces disminuye. Además, en pendientes pronunciadas estos depósitos son susceptibles a erosión y remoción en masa, de modo que la estabilidad del suelo y la permanencia de la vegetación dependen mucho de conservar cobertura y estructura radicular."
     },
-
-
     "3": {
-
-        simbolo:
-            "Tmt4",
-
-        resumen:
-            "Toba cristalina consolidada de María Tecún, rica en cuarzo, feldespatos, plagioclasas, biotita y moscovita.",
-
-        texto:
-            "La Toba María Tecún 4 es una unidad consolidada de color gris oscuro y matriz afanítica. Su composición incluye principalmente cuarzo, feldespato, plagioclasa, biotita y moscovita. La presencia de esta unidad en sectores elevados de la cuenca permite observar materiales volcánicos consolidados que contrastan claramente con los depósitos pumíceos y sedimentarios más recientes."
-
+        simbolo: "Tmt4",
+        resumen: "Toba cristalina consolidada de María Tecún, con abundantes componentes minerales como cuarzo, feldespatos, plagioclasas, biotita y moscovita. Representa un material volcánico más consolidado que los depósitos pumíceos recientes y permite observar una etapa distinta de la evolución geológica regional.",
+        edafologia: "Al tratarse de una toba consolidada, la formación del suelo depende mucho del grado de fracturación y meteorización de la roca. Donde la alteración es intensa pueden desarrollarse horizontes relativamente finos, con aporte de minerales procedentes de feldespatos y micas; donde la roca permanece compacta, los suelos tienden a ser más someros y las raíces se concentran en fracturas y zonas alteradas. En pendientes elevadas la escorrentía puede dominar sobre la infiltración y aumentar la erosión. Para la vegetación, las mejores condiciones suelen encontrarse en superficies más estables y meteorizadas, donde existe mayor volumen de suelo, mientras que afloramientos duros o laderas muy inclinadas limitan el almacenamiento de agua y el anclaje radicular."
     },
-
-
     "4": {
-
-        simbolo:
-            "Tcf2",
-
-        resumen:
-            "Secuencia de areniscas con lutitas y pizarras estratificadas, interpretada como parte del relleno sedimentario de la caldera.",
-
-        texto:
-            "La unidad Tcf2 está formada principalmente por areniscas, lutitas y pizarras estratificadas. Localmente pueden presentarse intercalaciones de conglomerados con matriz pumícea. Estos materiales reflejan procesos de sedimentación posteriores o contemporáneos a episodios volcánicos y forman parte del relleno de la estructura caldérica, por lo que son especialmente útiles para explicar cómo la cuenca fue acumulando materiales después de importantes fases eruptivas."
-
+        simbolo: "Tcf2",
+        resumen: "Secuencia sedimentaria de relleno de caldera, con areniscas, lutitas y pizarras estratificadas y, localmente, intercalaciones conglomeráticas. Es importante porque muestra que la cuenca no registra únicamente volcanismo: también conserva etapas de sedimentación y relleno posteriores o contemporáneas a grandes episodios eruptivos.",
+        edafologia: "La alternancia de areniscas, lutitas y pizarras produce cambios muy marcados en textura, drenaje y profundidad del suelo a distancias cortas. Las capas finas derivadas de lutitas pueden favorecer mayor retención de agua y formación de fracciones arcillosas, pero también pueden presentar drenaje lento si se compactan. Las areniscas suelen generar materiales más gruesos y permeables. Esta estratificación puede originar niveles donde el agua se acumula sobre capas menos permeables, afectando tanto la estabilidad de laderas como la disponibilidad hídrica para las raíces. Para el crecimiento vegetal, esa variabilidad significa que dos sitios cercanos pueden responder de forma distinta al mismo régimen de lluvia y manejo."
     },
-
-
     "5": {
-
-        simbolo:
-            "QTa",
-
-        resumen:
-            "Conjunto de lavas, lodos y depósitos piroclásticos de composición principalmente andesítica, asociados a complejos volcánicos terciario-cuaternarios.",
-
-        texto:
-            "La unidad QTa representa una asociación de materiales volcánicos dominados por composiciones andesíticas. Incluye flujos de lava, depósitos de lodo y materiales piroclásticos, además de litologías básicas e intermedias en algunos sectores. Su distribución permite reconocer fases prolongadas de construcción volcánica anteriores y parcialmente contemporáneas al desarrollo de los principales edificios cuaternarios."
-
+        simbolo: "QTa",
+        resumen: "Conjunto volcánico terciario-cuaternario formado principalmente por lavas, depósitos de lodo y materiales piroclásticos de composición andesítica. Su distribución refleja fases prolongadas de construcción volcánica anteriores y parcialmente contemporáneas al desarrollo de los grandes edificios volcánicos cuaternarios.",
+        edafologia: "Las rocas andesíticas aportan, al meteorizarse, una mezcla de minerales capaces de originar suelos con cantidades apreciables de bases y micronutrientes. Sin embargo, la respuesta edáfica depende del material concreto: una lava masiva puede producir suelos poco profundos y pedregosos durante largo tiempo, mientras que depósitos piroclásticos o de lodo pueden alterarse con mayor rapidez y formar perfiles más profundos. En ambientes volcánicos húmedos son frecuentes propiedades de suelos de ceniza, como alta porosidad, alta retención de agua y fuerte fijación de fósforo. Para la vegetación esto puede traducirse en buen desarrollo radicular y reserva hídrica donde el perfil es profundo, pero también en limitaciones de fósforo, erosión en laderas y contrastes fuertes entre superficies jóvenes y antiguas."
     },
-
-
     "6": {
-
-        simbolo:
-            "Qa",
-
-        resumen:
-            "Materiales de los complejos estratovolcánicos cuaternarios: lavas, depósitos de lodo y productos piroclásticos predominantemente andesíticos.",
-
-        texto:
-            "La unidad Qa reúne materiales asociados a los complejos estratovolcánicos cuaternarios. Está constituida principalmente por flujos y fragmentos de lava, depósitos de lodo y productos piroclásticos de composición mayoritariamente andesítica. Es una de las unidades más importantes para interpretar el paisaje volcánico actual, porque está directamente relacionada con la construcción de los grandes edificios que dominan visualmente la cuenca de Atitlán."
-
+        simbolo: "Qa",
+        resumen: "Materiales de los complejos estratovolcánicos cuaternarios: lavas, depósitos de lodo y productos piroclásticos predominantemente andesíticos. Esta unidad está directamente relacionada con la construcción de los grandes edificios volcánicos que dominan el paisaje actual de la cuenca.",
+        edafologia: "En los estratovolcanes, el relieve y la edad de las superficies son tan importantes como la composición de la roca. Las laderas jóvenes y empinadas pueden tener suelos delgados, pedregosos y muy susceptibles a erosión; las superficies más antiguas y estables pueden acumular ceniza, materia orgánica y productos de meteorización, desarrollando suelos de mayor espesor. Los materiales volcánicos alterados suelen presentar buena estructura y gran capacidad de almacenar agua, condiciones favorables para raíces, pero pueden retener con fuerza el fósforo. Por ello, el potencial para bosques, cultivos y vegetación natural puede ser alto donde existe suficiente profundidad y estabilidad, mientras que la pendiente, los deslizamientos y la pérdida de cobertura son limitantes decisivos."
     },
-
-
     "7": {
-
-        simbolo:
-            "Tg",
-
-        resumen:
-            "Granitos y granodioritas: rocas ígneas cristalinas masivas con cuarzo, feldespato, biotita, plagioclasa, hornblenda y piroxeno.",
-
-        texto:
-            "La unidad Tg está constituida por granito y granodiorita, rocas ígneas cristalinas de carácter masivo. Entre sus minerales principales se encuentran cuarzo, feldespato, biotita, plagioclasa, hornblenda y piroxeno. En algunos planos de fractura pueden observarse minerales como pirita y calcopirita. Esta unidad permite mostrar el fuerte contraste entre rocas cristalinas intrusivas y las numerosas unidades volcánicas y sedimentarias que predominan en otras partes de la cuenca."
-
+        simbolo: "Tg",
+        resumen: "Granitos y granodioritas: rocas ígneas cristalinas masivas formadas por minerales como cuarzo, feldespatos, plagioclasas, biotita, hornblenda y piroxeno. Esta unidad contrasta con las extensas coberturas volcánicas y sedimentarias de la cuenca y permite reconocer un basamento cristalino de comportamiento geomorfológico diferente.",
+        edafologia: "La meteorización de granito y granodiorita suele producir materiales arenosos o franco-arenosos derivados de cuarzo y feldespatos. Estos sustratos tienden a drenar con facilidad, pero pueden almacenar menos agua que suelos desarrollados sobre ceniza fina, especialmente donde el perfil es poco profundo. La alteración de feldespatos, biotita y otros minerales aporta arcillas y nutrientes con el tiempo, aunque en ambientes muy lavados el suelo puede acidificarse y perder bases. Las raíces aprovechan especialmente las zonas fracturadas y los mantos de alteración profundos. Para la vegetación, la disponibilidad de agua durante la estación seca y la profundidad efectiva del suelo suelen ser factores importantes; en laderas empinadas, además, el material arenoso meteorizado puede erosionarse con rapidez si se elimina la cobertura vegetal."
     }
-
 };
 
-
-
 /* ============================================================
-   HTML
+   DOM
 ============================================================ */
-
-const estado =
-    document.getElementById(
-        "estado"
-    );
-
-
-const etiqueta =
-    document.getElementById(
-        "etiqueta"
-    );
-
-
-const etiquetaCodigo =
-    document.getElementById(
-        "etiquetaCodigo"
-    );
-
-
-const etiquetaTitulo =
-    document.getElementById(
-        "etiquetaTitulo"
-    );
-
-
-const etiquetaResumen =
-    document.getElementById(
-        "etiquetaResumen"
-    );
-
-
-const marcador =
-    document.getElementById(
-        "marcador"
-    );
-
-
-const ficha =
-    document.getElementById(
-        "ficha"
-    );
-
-
-const fichaCodigo =
-    document.getElementById(
-        "fichaCodigo"
-    );
-
-
-const fichaTitulo =
-    document.getElementById(
-        "fichaTitulo"
-    );
-
-
-const fichaLitologia =
-    document.getElementById(
-        "fichaLitologia"
-    );
-
-
-const fichaTexto =
-    document.getElementById(
-        "fichaTexto"
-    );
-
-
+const stage = document.getElementById("stage");
+const visor = document.getElementById("visor");
+const estado = document.getElementById("estado");
+const infoRail = document.getElementById("infoRail");
+const infoCard = document.getElementById("infoCard");
+const infoCodigo = document.getElementById("infoCodigo");
+const infoTitulo = document.getElementById("infoTitulo");
+const infoResumen = document.getElementById("infoResumen");
+const infoLitologia = document.getElementById("infoLitologia");
+const infoDescripcion = document.getElementById("infoDescripcion");
+const infoEdafologia = document.getElementById("infoEdafologia");
+const seccionDescripcion = document.getElementById("seccionDescripcion");
+const calloutLine = document.getElementById("calloutLine");
+const calloutHalo = document.getElementById("calloutHalo");
+const calloutCore = document.getElementById("calloutCore");
 
 /* ============================================================
    THREE
 ============================================================ */
-
-const scene =
-    new THREE.Scene();
-
-
-scene.background =
-    new THREE.Color(
-        0xb9ced3
-    );
-
-
-const camera =
-    new THREE.PerspectiveCamera(
-
-        42,
-
-        window.innerWidth /
-        window.innerHeight,
-
-        1,
-
-        250000
-
-    );
-
-
-camera.up.set(
-    0,
-    0,
-    1
-);
-
-
-const renderer =
-    new THREE.WebGLRenderer({
-
-        antialias:
-            true
-
-    });
-
-
-renderer.setSize(
-
-    window.innerWidth,
-
-    window.innerHeight
-
-);
-
-
-renderer.setPixelRatio(
-
-    Math.min(
-        window.devicePixelRatio,
-        2
-    )
-
-);
-
-
-renderer.outputColorSpace =
-    THREE.SRGBColorSpace;
-
-
-document
-.getElementById(
-    "visor"
-)
-.appendChild(
-    renderer.domElement
-);
-
-
-
-/* ============================================================
-   CONTROLES
-============================================================ */
-
-const controls =
-    new OrbitControls(
-
-        camera,
-
-        renderer.domElement
-
-    );
-
-
-controls.enableDamping =
-    true;
-
-
-controls.dampingFactor =
-    0.07;
-
-
-controls.maxPolarAngle =
-    Math.PI * 0.49;
-
-
-controls.enablePan =
-    true;
-
-
-
-/* ============================================================
-   LUCES
-============================================================ */
-
-scene.add(
-
-    new THREE.HemisphereLight(
-
-        0xffffff,
-
-        0x48515a,
-
-        1.8
-
-    )
-
-);
-
-
-const sol =
-    new THREE.DirectionalLight(
-
-        0xffffff,
-
-        2.15
-
-    );
-
-
-sol.position.set(
-
-    -22000,
-
-    -26000,
-
-    42000
-
-);
-
-
-scene.add(
-    sol
-);
-
-
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xb9ced3);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 1, 250000);
+camera.up.set(0, 0, 1);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+visor.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.07;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.enablePan = true;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x48515a, 1.8));
+const sol = new THREE.DirectionalLight(0xffffff, 2.15);
+sol.position.set(-22000, -26000, 42000);
+scene.add(sol);
 
 /* ============================================================
    VARIABLES
 ============================================================ */
-
-let demRaster;
-
-let demWidth;
-
-let demHeight;
-
-let demNoData;
-
-
-let bbox;
-
-let centroX;
-
-let centroY;
-
-let anchoTerreno;
-
-let altoTerreno;
-
-
-let elevMin =
-    Infinity;
-
-let elevMax =
-    -Infinity;
-
-
-let terreno;
-
-
-let materialBase;
-
-let materialGeologia;
-
-let materialLecho;
-
-
-let texturaGeologia;
-
-let texturaLecho;
-
-
-let aguaGrupo;
-
-
-let nivelAguaOriginal;
-
-
-let lagoVacio =
-    false;
-
-
-let animandoAgua =
-    false;
-
-
+let demRaster, demWidth, demHeight, demNoData;
+let bbox, centroX, centroY, anchoTerreno, altoTerreno;
+let elevMin = Infinity, elevMax = -Infinity;
+let terreno, materialBase, materialGeologia, materialLecho;
+let texturaGeologia, texturaLecho;
+let aguaGrupo, nivelAguaOriginal;
+let lagoVacio = false, animandoAgua = false;
 let geologiaGeoJSON;
-
-
-let featureActiva =
-    null;
-
-
-let puntoEtiqueta3D =
-    null;
-
-
-let animandoCamara =
-    false;
-
-
+let puntoCallout3D = null;
+let teclaActiva = null;
+let cameraAnimToken = 0;
 
 /* ============================================================
-   DEM
+   UTILIDADES DEM
 ============================================================ */
-
-function valorValido(
-    z
-) {
-
-    if (
-        !Number.isFinite(
-            z
-        )
-    ) {
-
-        return false;
-
-    }
-
-
-    if (
-
-        demNoData !== null &&
-
-        Number.isFinite(
-            demNoData
-        ) &&
-
-        Math.abs(
-            z -
-            demNoData
-        ) < 0.001
-
-    ) {
-
-        return false;
-
-    }
-
-
+function valorValido(z) {
+    if (!Number.isFinite(z)) return false;
+    if (demNoData !== null && Number.isFinite(demNoData) && Math.abs(z - demNoData) < 0.001) return false;
     return true;
-
 }
 
-
-
-function elevacionAZ(
-    z
-) {
-
-    return (
-
-        z -
-        elevMin
-
-    ) *
-    EXAGERACION_VERTICAL;
-
+function elevacionAZ(z) {
+    return (z - elevMin) * EXAGERACION_VERTICAL;
 }
 
+function elevacionEnGTM(x, y) {
+    if (!bbox || x < bbox[0] || x > bbox[2] || y < bbox[1] || y > bbox[3]) return null;
 
+    const px = Math.round((x - bbox[0]) / (bbox[2] - bbox[0]) * (demWidth - 1));
+    const py = Math.round((bbox[3] - y) / (bbox[3] - bbox[1]) * (demHeight - 1));
+    const valor = demRaster[py * demWidth + px];
+    if (valorValido(valor)) return valor;
 
-function elevacionEnGTM(
-    x,
-    y
-) {
-
-    if (
-
-        x < bbox[0] ||
-        x > bbox[2] ||
-
-        y < bbox[1] ||
-        y > bbox[3]
-
-    ) {
-
-        return null;
-
-    }
-
-
-    const px =
-
-        Math.round(
-
-            (
-                x -
-                bbox[0]
-            ) /
-
-            (
-                bbox[2] -
-                bbox[0]
-            ) *
-
-            (
-                demWidth -
-                1
-            )
-
-        );
-
-
-    const py =
-
-        Math.round(
-
-            (
-                bbox[3] -
-                y
-            ) /
-
-            (
-                bbox[3] -
-                bbox[1]
-            ) *
-
-            (
-                demHeight -
-                1
-            )
-
-        );
-
-
-    const valor =
-        demRaster[
-            py *
-            demWidth +
-            px
-        ];
-
-
-    if (
-        valorValido(
-            valor
-        )
-    ) {
-
-        return valor;
-
-    }
-
-
-    /*
-        Buscar alrededor para evitar
-        puntos justo en borde NoData.
-    */
-
-    for (
-        let radio = 1;
-        radio <= 8;
-        radio++
-    ) {
-
-        for (
-            let dy = -radio;
-            dy <= radio;
-            dy++
-        ) {
-
-            for (
-                let dx = -radio;
-                dx <= radio;
-                dx++
-            ) {
-
-                const xx =
-                    px + dx;
-
-                const yy =
-                    py + dy;
-
-
-                if (
-
-                    xx < 0 ||
-                    xx >= demWidth ||
-
-                    yy < 0 ||
-                    yy >= demHeight
-
-                ) {
-
-                    continue;
-
-                }
-
-
-                const v =
-                    demRaster[
-                        yy *
-                        demWidth +
-                        xx
-                    ];
-
-
-                if (
-                    valorValido(
-                        v
-                    )
-                ) {
-
-                    return v;
-
-                }
-
+    for (let radio = 1; radio <= 10; radio++) {
+        for (let dy = -radio; dy <= radio; dy++) {
+            for (let dx = -radio; dx <= radio; dx++) {
+                const xx = px + dx, yy = py + dy;
+                if (xx < 0 || xx >= demWidth || yy < 0 || yy >= demHeight) continue;
+                const v = demRaster[yy * demWidth + xx];
+                if (valorValido(v)) return v;
             }
-
         }
-
     }
-
-
     return null;
-
 }
 
-
-
-function gtmALocal(
-    x,
-    y
-) {
-
-    return new THREE.Vector2(
-
-        x -
-        centroX,
-
-        y -
-        centroY
-
-    );
-
+function gtmALocal(x, y) {
+    return new THREE.Vector2(x - centroX, y - centroY);
 }
-
-
 
 /* ============================================================
-   CARGAR DEM
+   CARGA DEL DEM Y MALLA SIN NODATA
 ============================================================ */
-
 async function cargarDEM() {
+    estado.textContent = "Descargando DEM...";
+    const tiff = await fromUrl(RUTA_DEM);
+    const image = await tiff.getImage();
 
-    estado.innerText =
-        "Descargando DEM...";
+    bbox = image.getBoundingBox();
+    demWidth = image.getWidth();
+    demHeight = image.getHeight();
+    demRaster = await image.readRasters({ interleave: true });
 
+    const nd = image.getGDALNoData();
+    demNoData = nd !== null ? Number(nd) : null;
 
-    const tiff =
-        await fromUrl(
-            RUTA_DEM
-        );
+    anchoTerreno = bbox[2] - bbox[0];
+    altoTerreno = bbox[3] - bbox[1];
+    centroX = (bbox[0] + bbox[2]) / 2;
+    centroY = (bbox[1] + bbox[3]) / 2;
 
-
-    const image =
-        await tiff.getImage();
-
-
-    bbox =
-        image.getBoundingBox();
-
-
-    demWidth =
-        image.getWidth();
-
-
-    demHeight =
-        image.getHeight();
-
-
-    demRaster =
-        await image.readRasters({
-
-            interleave:
-                true
-
-        });
-
-
-    const nd =
-        image.getGDALNoData();
-
-
-    demNoData =
-
-        nd !== null
-
-            ?
-
-            Number(nd)
-
-            :
-
-            null;
-
-
-
-    anchoTerreno =
-
-        bbox[2] -
-        bbox[0];
-
-
-    altoTerreno =
-
-        bbox[3] -
-        bbox[1];
-
-
-    centroX =
-
-        (
-            bbox[0] +
-            bbox[2]
-        ) / 2;
-
-
-    centroY =
-
-        (
-            bbox[1] +
-            bbox[3]
-        ) / 2;
-
-
-
-    for (
-        let i = 0;
-        i < demRaster.length;
-        i++
-    ) {
-
-        const z =
-            demRaster[i];
-
-
-        if (
-            !valorValido(
-                z
-            )
-        ) {
-
-            continue;
-
-        }
-
-
-        elevMin =
-            Math.min(
-                elevMin,
-                z
-            );
-
-
-        elevMax =
-            Math.max(
-                elevMax,
-                z
-            );
-
+    for (let i = 0; i < demRaster.length; i++) {
+        const z = demRaster[i];
+        if (!valorValido(z)) continue;
+        elevMin = Math.min(elevMin, z);
+        elevMax = Math.max(elevMax, z);
     }
-
-
 
     crearTerreno();
-
-
     prepararCamaraInicial();
-
 }
-
-
-
-/* ============================================================
-   CREAR MALLA DEM
-============================================================ */
 
 function crearTerreno() {
+    estado.textContent = "Construyendo terreno...";
+    const filas = Math.max(2, Math.round(COLUMNAS * demHeight / demWidth));
+    const posiciones = [];
+    const uvs = [];
+    const validos = [];
 
-    estado.innerText =
-        "Construyendo terreno...";
+    for (let fila = 0; fila < filas; fila++) {
+        const py = Math.round(fila / (filas - 1) * (demHeight - 1));
+        const mapY = bbox[3] - fila / (filas - 1) * altoTerreno;
+        const localY = mapY - centroY;
 
-
-    const filas =
-        Math.round(
-
-            COLUMNAS *
-            demHeight /
-            demWidth
-
-        );
-
-
-    const posiciones =
-        [];
-
-
-    const uvs =
-        [];
-
-
-    const validos =
-        [];
-
-
-    for (
-        let fila = 0;
-        fila < filas;
-        fila++
-    ) {
-
-        const py =
-            Math.round(
-
-                fila /
-                (
-                    filas -
-                    1
-                ) *
-
-                (
-                    demHeight -
-                    1
-                )
-
-            );
-
-
-        const mapY =
-
-            bbox[3] -
-
-            fila /
-            (
-                filas -
-                1
-            ) *
-
-            altoTerreno;
-
-
-        const localY =
-
-            mapY -
-            centroY;
-
-
-        for (
-            let col = 0;
-            col < COLUMNAS;
-            col++
-        ) {
-
-            const px =
-                Math.round(
-
-                    col /
-                    (
-                        COLUMNAS -
-                        1
-                    ) *
-
-                    (
-                        demWidth -
-                        1
-                    )
-
-                );
-
-
-            const mapX =
-
-                bbox[0] +
-
-                col /
-                (
-                    COLUMNAS -
-                    1
-                ) *
-
-                anchoTerreno;
-
-
-            const localX =
-
-                mapX -
-                centroX;
-
-
-            const z =
-                demRaster[
-                    py *
-                    demWidth +
-                    px
-                ];
-
-
-            const valido =
-                valorValido(
-                    z
-                );
-
-
-            validos.push(
-                valido
-            );
-
-
-            posiciones.push(
-
-                localX,
-
-                localY,
-
-                valido
-                    ?
-                    elevacionAZ(
-                        z
-                    )
-                    :
-                    0
-
-            );
-
-
-            uvs.push(
-
-                col /
-                (
-                    COLUMNAS -
-                    1
-                ),
-
-                1 -
-                fila /
-                (
-                    filas -
-                    1
-                )
-
-            );
-
+        for (let col = 0; col < COLUMNAS; col++) {
+            const px = Math.round(col / (COLUMNAS - 1) * (demWidth - 1));
+            const mapX = bbox[0] + col / (COLUMNAS - 1) * anchoTerreno;
+            const localX = mapX - centroX;
+            const z = demRaster[py * demWidth + px];
+            const valido = valorValido(z);
+            validos.push(valido);
+            posiciones.push(localX, localY, valido ? elevacionAZ(z) : 0);
+            uvs.push(col / (COLUMNAS - 1), 1 - fila / (filas - 1));
         }
-
     }
 
-
-
-    const indices =
-        [];
-
-
-    for (
-        let fila = 0;
-        fila < filas - 1;
-        fila++
-    ) {
-
-        for (
-            let col = 0;
-            col < COLUMNAS - 1;
-            col++
-        ) {
-
-            const a =
-                fila *
-                COLUMNAS +
-                col;
-
-
-            const b =
-                a + 1;
-
-
-            const c =
-                (
-                    fila + 1
-                ) *
-                COLUMNAS +
-                col;
-
-
-            const d =
-                c + 1;
-
-
-            if (
-
-                validos[a] &&
-                validos[c] &&
-                validos[b]
-
-            ) {
-
-                indices.push(
-                    a,
-                    c,
-                    b
-                );
-
-            }
-
-
-            if (
-
-                validos[b] &&
-                validos[c] &&
-                validos[d]
-
-            ) {
-
-                indices.push(
-                    b,
-                    c,
-                    d
-                );
-
-            }
-
+    const indices = [];
+    for (let fila = 0; fila < filas - 1; fila++) {
+        for (let col = 0; col < COLUMNAS - 1; col++) {
+            const a = fila * COLUMNAS + col;
+            const b = a + 1;
+            const c = (fila + 1) * COLUMNAS + col;
+            const d = c + 1;
+            if (validos[a] && validos[c] && validos[b]) indices.push(a, c, b);
+            if (validos[b] && validos[c] && validos[d]) indices.push(b, c, d);
         }
-
     }
 
-
-
-    const geometry =
-        new THREE.BufferGeometry();
-
-
-    geometry.setAttribute(
-
-        "position",
-
-        new THREE.Float32BufferAttribute(
-
-            posiciones,
-
-            3
-
-        )
-
-    );
-
-
-    geometry.setAttribute(
-
-        "uv",
-
-        new THREE.Float32BufferAttribute(
-
-            uvs,
-
-            2
-
-        )
-
-    );
-
-
-    geometry.setIndex(
-        indices
-    );
-
-
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(posiciones, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
     geometry.computeVertexNormals();
 
+    materialBase = new THREE.MeshStandardMaterial({
+        color: 0x7d80a5,
+        roughness: 0.9,
+        side: THREE.DoubleSide
+    });
 
-
-    materialBase =
-        new THREE.MeshStandardMaterial({
-
-            color:
-                0x7d80a5,
-
-            roughness:
-                0.9,
-
-            side:
-                THREE.DoubleSide
-
-        });
-
-
-    terreno =
-        new THREE.Mesh(
-
-            geometry,
-
-            materialBase
-
-        );
-
-
-    scene.add(
-        terreno
-    );
-
+    terreno = new THREE.Mesh(geometry, materialBase);
+    scene.add(terreno);
 }
-
-
-
-/* ============================================================
-   CÁMARA GENERAL
-============================================================ */
 
 function prepararCamaraInicial() {
-
-    const maxDim =
-        Math.max(
-
-            anchoTerreno,
-
-            altoTerreno
-
-        );
-
-
-    camera.position.set(
-
-        maxDim *
-        0.58,
-
-        -maxDim *
-        0.70,
-
-        maxDim *
-        0.52
-
-    );
-
-
-    controls.target.set(
-
-        0,
-
-        0,
-
-        (
-            elevMax -
-            elevMin
-        ) *
-
-        EXAGERACION_VERTICAL *
-
-        0.15
-
-    );
-
-
+    const maxDim = Math.max(anchoTerreno, altoTerreno);
+    camera.position.set(maxDim * 0.58, -maxDim * 0.70, maxDim * 0.52);
+    controls.target.set(0, 0, (elevMax - elevMin) * EXAGERACION_VERTICAL * 0.15);
     controls.update();
-
 }
 
-
-
 /* ============================================================
-   ESTILO QML
+   QML -> COLORES
 ============================================================ */
-
 async function leerQML() {
-
     try {
-
-        const response =
-            await fetch(
-                RUTA_QML
-            );
-
-
-        if (
-            !response.ok
-        ) {
-
-            return null;
-
-        }
-
-
-        const texto =
-            await response.text();
-
-
-        const xml =
-            new DOMParser()
-            .parseFromString(
-
-                texto,
-
-                "text/xml"
-
-            );
-
-
-        const rendererQgis =
-            xml.querySelector(
-                "renderer-v2"
-            );
-
-
-        if (
-            !rendererQgis
-        ) {
-
-            return null;
-
-        }
-
-
-        const campo =
-            rendererQgis
-            .getAttribute(
-                "attr"
-            );
-
-
-        const colores =
-            new Map();
-
-
-        xml
-        .querySelectorAll(
-            "symbols > symbol"
-        )
-        .forEach(
-            simbolo => {
-
-                const id =
-                    simbolo
-                    .getAttribute(
-                        "name"
-                    );
-
-
-                let color =
-                    null;
-
-
-                simbolo
-                .querySelectorAll(
-                    "Option"
-                )
-                .forEach(
-                    opcion => {
-
-                        const nombre =
-                            opcion
-                            .getAttribute(
-                                "name"
-                            );
-
-
-                        const valor =
-                            opcion
-                            .getAttribute(
-                                "value"
-                            );
-
-
-                        if (
-
-                            (
-                                nombre ===
-                                "color" ||
-
-                                nombre ===
-                                "fill_color"
-                            ) &&
-
-                            valor &&
-
-                            !color
-
-                        ) {
-
-                            color =
-                                valor;
-
-                        }
-
-                    }
-
-                );
-
-
-                if (
-                    color
-                ) {
-
-                    colores.set(
-                        id,
-                        color
-                    );
-
-                }
-
-            }
-
-        );
-
-
-        const categorias =
-            new Map();
-
-
-        xml
-        .querySelectorAll(
-            "categories > category"
-        )
-        .forEach(
-            categoria => {
-
-                const value =
-                    String(
-
-                        categoria
-                        .getAttribute(
-                            "value"
-                        )
-
-                    );
-
-
-                const symbol =
-                    categoria
-                    .getAttribute(
-                        "symbol"
-                    );
-
-
-                if (
-                    colores.has(
-                        symbol
-                    )
-                ) {
-
-                    categorias.set(
-
-                        value,
-
-                        colores.get(
-                            symbol
-                        )
-
-                    );
-
-                }
-
-            }
-
-        );
-
-
-        return {
-
-            campo,
-
-            categorias
-
-        };
-
-    }
-
-    catch {
-
-        return null;
-
-    }
-
-}
-
-
-
-function colorQgisCSS(
-    color
-) {
-
-    if (
-        !color
-    ) {
-
-        return "#c6b790";
-
-    }
-
-
-    if (
-        color.includes(
-            ","
-        )
-    ) {
-
-        const p =
-            color
-            .split(",")
-            .map(Number);
-
-
-        return `rgb(${p[0]},${p[1]},${p[2]})`;
-
-    }
-
-
-    return color;
-
-}
-
-
-
-/* ============================================================
-   GEOJSON → CANVAS
-============================================================ */
-
-function gtmAPixel(
-    x,
-    y,
-    canvas
-) {
-
-    return [
-
-        (
-            x -
-            bbox[0]
-        ) /
-
-        (
-            bbox[2] -
-            bbox[0]
-        ) *
-
-        canvas.width,
-
-
-        (
-            bbox[3] -
-            y
-        ) /
-
-        (
-            bbox[3] -
-            bbox[1]
-        ) *
-
-        canvas.height
-
-    ];
-
-}
-
-
-
-function dibujarAnillo(
-    ctx,
-    coords,
-    canvas
-) {
-
-    if (
-        !coords.length
-    ) {
-
-        return;
-
-    }
-
-
-    const p0 =
-        gtmAPixel(
-
-            coords[0][0],
-
-            coords[0][1],
-
-            canvas
-
-        );
-
-
-    ctx.moveTo(
-        p0[0],
-        p0[1]
-    );
-
-
-    for (
-        let i = 1;
-        i < coords.length;
-        i++
-    ) {
-
-        const p =
-            gtmAPixel(
-
-                coords[i][0],
-
-                coords[i][1],
-
-                canvas
-
-            );
-
-
-        ctx.lineTo(
-            p[0],
-            p[1]
-        );
-
-    }
-
-
-    ctx.closePath();
-
-}
-
-
-
-function pintarPoligono(
-    ctx,
-    poligono,
-    canvas,
-    color
-) {
-
-    ctx.beginPath();
-
-
-    dibujarAnillo(
-
-        ctx,
-
-        poligono[0],
-
-        canvas
-
-    );
-
-
-    for (
-        let i = 1;
-        i < poligono.length;
-        i++
-    ) {
-
-        dibujarAnillo(
-
-            ctx,
-
-            poligono[i],
-
-            canvas
-
-        );
-
-    }
-
-
-    ctx.fillStyle =
-        color;
-
-
-    ctx.fill(
-        "evenodd"
-    );
-
-}
-
-
-
-/* ============================================================
-   GEOLOGÍA
-============================================================ */
-
-async function cargarGeologia() {
-
-    estado.innerText =
-        "Preparando geología...";
-
-
-    const [
-        responseGeo,
-        estilo
-    ] =
-        await Promise.all([
-
-            fetch(
-                RUTA_GEOLOGIA
-            ),
-
-            leerQML()
-
-        ]);
-
-
-    geologiaGeoJSON =
-        await responseGeo.json();
-
-
-
-    const canvas =
-        document.createElement(
-            "canvas"
-        );
-
-
-    canvas.width =
-        TEXTURA_RES;
-
-
-    canvas.height =
-        Math.round(
-
-            TEXTURA_RES *
-            altoTerreno /
-            anchoTerreno
-
-        );
-
-
-    const ctx =
-        canvas.getContext(
-            "2d"
-        );
-
-
-    ctx.fillStyle =
-        "#d0d2d5";
-
-
-    ctx.fillRect(
-
-        0,
-        0,
-
-        canvas.width,
-        canvas.height
-
-    );
-
-
-
-    for (
-        const feature
-        of geologiaGeoJSON.features
-    ) {
-
-        if (
-            !feature.geometry
-        ) {
-
-            continue;
-
-        }
-
-
-        let color =
-            "#bcae8f";
-
-
-        if (
-            estilo &&
-            estilo.campo
-        ) {
-
-            const valor =
-                String(
-
-                    feature
-                    .properties?.[
-                        estilo.campo
-                    ] ?? ""
-
-                );
-
-
-            const qml =
-                estilo
-                .categorias
-                .get(
-                    valor
-                );
-
-
-            if (
-                qml
-            ) {
-
-                color =
-                    colorQgisCSS(
-                        qml
-                    );
-
-            }
-
-        }
-
-
-
-        if (
-            feature.geometry.type ===
-            "Polygon"
-        ) {
-
-            pintarPoligono(
-
-                ctx,
-
-                feature.geometry.coordinates,
-
-                canvas,
-
-                color
-
-            );
-
-        }
-
-
-        else if (
-            feature.geometry.type ===
-            "MultiPolygon"
-        ) {
-
-            for (
-                const poligono
-                of feature.geometry.coordinates
-            ) {
-
-                pintarPoligono(
-
-                    ctx,
-
-                    poligono,
-
-                    canvas,
-
-                    color
-
-                );
-
-            }
-
-        }
-
-    }
-
-
-
-    texturaGeologia =
-        new THREE.CanvasTexture(
-            canvas
-        );
-
-
-    texturaGeologia.colorSpace =
-        THREE.SRGBColorSpace;
-
-
-    materialGeologia =
-        new THREE.MeshStandardMaterial({
-
-            map:
-                texturaGeologia,
-
-            roughness:
-                0.9,
-
-            side:
-                THREE.DoubleSide
-
+        const response = await fetch(RUTA_QML);
+        if (!response.ok) return null;
+        const texto = await response.text();
+        const xml = new DOMParser().parseFromString(texto, "text/xml");
+        const rendererQgis = xml.querySelector("renderer-v2");
+        if (!rendererQgis) return null;
+
+        const campo = rendererQgis.getAttribute("attr");
+        const colores = new Map();
+
+        xml.querySelectorAll("symbols > symbol").forEach(simbolo => {
+            const id = simbolo.getAttribute("name");
+            let color = null;
+            simbolo.querySelectorAll("Option").forEach(opcion => {
+                const nombre = opcion.getAttribute("name");
+                const valor = opcion.getAttribute("value");
+                if ((nombre === "color" || nombre === "fill_color") && valor && !color) color = valor;
+            });
+            if (color) colores.set(id, color);
         });
 
+        const categorias = new Map();
+        xml.querySelectorAll("categories > category").forEach(categoria => {
+            const value = String(categoria.getAttribute("value"));
+            const symbol = categoria.getAttribute("symbol");
+            if (colores.has(symbol)) categorias.set(value, colores.get(symbol));
+        });
 
-    terreno.material =
-        materialGeologia;
-
-
-
-    /*
-        Después se generará una copia
-        con el fondo del lago blanco.
-    */
-
-    await crearTexturaLecho(
-        canvas
-    );
-
+        return { campo, categorias };
+    } catch (e) {
+        console.warn("No se pudo leer el QML:", e);
+        return null;
+    }
 }
 
+function colorQgisCSS(color) {
+    if (!color) return "#c6b790";
+    if (color.includes(",")) {
+        const p = color.split(",").map(Number);
+        return `rgb(${p[0]},${p[1]},${p[2]})`;
+    }
+    return color;
+}
 
+/* ============================================================
+   GEOJSON -> CANVAS
+============================================================ */
+function gtmAPixel(x, y, canvas) {
+    return [
+        (x - bbox[0]) / (bbox[2] - bbox[0]) * canvas.width,
+        (bbox[3] - y) / (bbox[3] - bbox[1]) * canvas.height
+    ];
+}
+
+function dibujarAnillo(ctx, coords, canvas) {
+    if (!coords?.length) return;
+    const p0 = gtmAPixel(coords[0][0], coords[0][1], canvas);
+    ctx.moveTo(p0[0], p0[1]);
+    for (let i = 1; i < coords.length; i++) {
+        const p = gtmAPixel(coords[i][0], coords[i][1], canvas);
+        ctx.lineTo(p[0], p[1]);
+    }
+    ctx.closePath();
+}
+
+function pintarPoligono(ctx, poligono, canvas, color) {
+    ctx.beginPath();
+    dibujarAnillo(ctx, poligono[0], canvas);
+    for (let i = 1; i < poligono.length; i++) dibujarAnillo(ctx, poligono[i], canvas);
+    ctx.fillStyle = color;
+    ctx.fill("evenodd");
+}
+
+async function cargarGeologia() {
+    estado.textContent = "Preparando geología...";
+    const [responseGeo, estilo] = await Promise.all([fetch(RUTA_GEOLOGIA), leerQML()]);
+    if (!responseGeo.ok) throw new Error("No se pudo cargar geologia.geojson");
+    geologiaGeoJSON = await responseGeo.json();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = TEXTURA_RES;
+    canvas.height = Math.round(TEXTURA_RES * altoTerreno / anchoTerreno);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#d0d2d5";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (const feature of geologiaGeoJSON.features || []) {
+        if (!feature.geometry) continue;
+        let color = "#bcae8f";
+
+        if (estilo?.campo) {
+            const valor = String(feature.properties?.[estilo.campo] ?? "");
+            const qml = estilo.categorias.get(valor);
+            if (qml) color = colorQgisCSS(qml);
+        }
+
+        if (feature.geometry.type === "Polygon") {
+            pintarPoligono(ctx, feature.geometry.coordinates, canvas, color);
+        } else if (feature.geometry.type === "MultiPolygon") {
+            for (const poligono of feature.geometry.coordinates) pintarPoligono(ctx, poligono, canvas, color);
+        }
+    }
+
+    texturaGeologia = new THREE.CanvasTexture(canvas);
+    texturaGeologia.colorSpace = THREE.SRGBColorSpace;
+    texturaGeologia.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    materialGeologia = new THREE.MeshStandardMaterial({
+        map: texturaGeologia,
+        roughness: 0.9,
+        side: THREE.DoubleSide
+    });
+    terreno.material = materialGeologia;
+
+    await crearTexturaLecho(canvas);
+}
 
 /* ============================================================
    LAGO
 ============================================================ */
+function crearShapeLago(poligono) {
+    const exterior = poligono[0].map(c => gtmALocal(c[0], c[1]));
+    const shape = new THREE.Shape();
+    shape.moveTo(exterior[0].x, exterior[0].y);
+    for (let i = 1; i < exterior.length; i++) shape.lineTo(exterior[i].x, exterior[i].y);
 
-function crearShapeLago(
-    poligono
-) {
-
-    const exterior =
-        poligono[0]
-        .map(
-            c =>
-                gtmALocal(
-                    c[0],
-                    c[1]
-                )
-        );
-
-
-    const shape =
-        new THREE.Shape();
-
-
-    shape.moveTo(
-
-        exterior[0].x,
-
-        exterior[0].y
-
-    );
-
-
-    for (
-        let i = 1;
-        i < exterior.length;
-        i++
-    ) {
-
-        shape.lineTo(
-
-            exterior[i].x,
-
-            exterior[i].y
-
-        );
-
+    for (let h = 1; h < poligono.length; h++) {
+        const holeCoords = poligono[h].map(c => gtmALocal(c[0], c[1]));
+        if (!holeCoords.length) continue;
+        const hole = new THREE.Path();
+        hole.moveTo(holeCoords[0].x, holeCoords[0].y);
+        for (let i = 1; i < holeCoords.length; i++) hole.lineTo(holeCoords[i].x, holeCoords[i].y);
+        shape.holes.push(hole);
     }
-
-
     return shape;
-
 }
-
-
 
 async function cargarLago() {
+    estado.textContent = "Preparando lago...";
+    const response = await fetch(RUTA_LAGO);
+    if (!response.ok) throw new Error("No se pudo cargar lago2.geojson");
+    const geojson = await response.json();
 
-    estado.innerText =
-        "Preparando lago...";
+    aguaGrupo = new THREE.Group();
+    scene.add(aguaGrupo);
 
+    const material = new THREE.MeshPhysicalMaterial({
+        color: 0x1686b3,
+        transparent: true,
+        opacity: 0.82,
+        roughness: 0.12,
+        metalness: 0.04,
+        transmission: 0.07,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        depthTest: true,
+        polygonOffset: true,
+        polygonOffsetFactor: -6,
+        polygonOffsetUnits: -6
+    });
 
-    const response =
-        await fetch(
-            RUTA_LAGO
-        );
+    nivelAguaOriginal = elevacionAZ(COTA_LAGO) + OFFSET_AGUA;
+    aguaGrupo.position.z = nivelAguaOriginal;
 
+    for (const feature of geojson.features || []) {
+        if (!feature.geometry) continue;
+        let poligonos = [];
+        if (feature.geometry.type === "Polygon") poligonos = [feature.geometry.coordinates];
+        else if (feature.geometry.type === "MultiPolygon") poligonos = feature.geometry.coordinates;
 
-    const geojson =
-        await response.json();
-
-
-
-    aguaGrupo =
-        new THREE.Group();
-
-
-    scene.add(
-        aguaGrupo
-    );
-
-
-    const material =
-        new THREE.MeshPhysicalMaterial({
-
-            color:
-                0x1686b3,
-
-            transparent:
-                true,
-
-            opacity:
-                0.82,
-
-            roughness:
-                0.12,
-
-            metalness:
-                0.04,
-
-            transmission:
-                0.07,
-
-            side:
-                THREE.DoubleSide,
-
-
-            /*
-                CLAVE CONTRA Z-FIGHTING
-            */
-
-            depthWrite:
-                false,
-
-            depthTest:
-                true,
-
-            polygonOffset:
-                true,
-
-            polygonOffsetFactor:
-                -4,
-
-            polygonOffsetUnits:
-                -4
-
-        });
-
-
-
-    nivelAguaOriginal =
-
-        elevacionAZ(
-            COTA_LAGO
-        ) +
-
-        OFFSET_AGUA;
-
-
-    aguaGrupo.position.z =
-        nivelAguaOriginal;
-
-
-
-    for (
-        const feature
-        of geojson.features
-    ) {
-
-        let poligonos =
-            [];
-
-
-        if (
-            feature.geometry.type ===
-            "Polygon"
-        ) {
-
-            poligonos = [
-                feature.geometry.coordinates
-            ];
-
+        for (const poligono of poligonos) {
+            const geometry = new THREE.ShapeGeometry(crearShapeLago(poligono));
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.renderOrder = 10;
+            aguaGrupo.add(mesh);
         }
-
-
-        else if (
-            feature.geometry.type ===
-            "MultiPolygon"
-        ) {
-
-            poligonos =
-                feature.geometry.coordinates;
-
-        }
-
-
-
-        for (
-            const poligono
-            of poligonos
-        ) {
-
-            const geometry =
-                new THREE.ShapeGeometry(
-
-                    crearShapeLago(
-                        poligono
-                    )
-
-                );
-
-
-            const mesh =
-                new THREE.Mesh(
-
-                    geometry,
-
-                    material
-
-                );
-
-
-            mesh.renderOrder =
-                10;
-
-
-            aguaGrupo.add(
-                mesh
-            );
-
-        }
-
     }
-
-
     return geojson;
-
 }
 
-
-
 /* ============================================================
-   TEXTURA DEL LECHO BLANCO
+   TEXTURA DEL LECHO
+   Se mantiene la geología fuera del lago y un gris claro dentro.
+   La geometría real del DEM aporta el sombreado del relieve.
 ============================================================ */
+async function crearTexturaLecho(canvasGeologia) {
+    const response = await fetch(RUTA_LAGO);
+    if (!response.ok) throw new Error("No se pudo preparar la máscara del lago");
+    const lago = await response.json();
 
-async function crearTexturaLecho(
-    canvasGeologia
-) {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasGeologia.width;
+    canvas.height = canvasGeologia.height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(canvasGeologia, 0, 0);
 
-    const response =
-        await fetch(
-            RUTA_LAGO
-        );
-
-
-    const lago =
-        await response.json();
-
-
-
-    const canvas =
-        document.createElement(
-            "canvas"
-        );
-
-
-    canvas.width =
-        canvasGeologia.width;
-
-
-    canvas.height =
-        canvasGeologia.height;
-
-
-    const ctx =
-        canvas.getContext(
-            "2d"
-        );
-
-
-    /*
-        Copiar geología
-    */
-
-    ctx.drawImage(
-
-        canvasGeologia,
-
-        0,
-
-        0
-
-    );
-
-
-
-    /*
-        Sobre el lago colocamos
-        gris muy claro.
-
-        El sombreado real lo genera
-        la iluminación de Three.js
-        sobre el relieve batimétrico.
-    */
-
-    for (
-        const feature
-        of lago.features
-    ) {
-
-        let poligonos =
-            [];
-
-
-        if (
-            feature.geometry.type ===
-            "Polygon"
-        ) {
-
-            poligonos = [
-                feature.geometry.coordinates
-            ];
-
-        }
-
-
-        else if (
-            feature.geometry.type ===
-            "MultiPolygon"
-        ) {
-
-            poligonos =
-                feature.geometry.coordinates;
-
-        }
-
-
-        for (
-            const poligono
-            of poligonos
-        ) {
-
-            pintarPoligono(
-
-                ctx,
-
-                poligono,
-
-                canvas,
-
-                "rgb(232,234,234)"
-
-            );
-
-        }
-
+    for (const feature of lago.features || []) {
+        if (!feature.geometry) continue;
+        let poligonos = [];
+        if (feature.geometry.type === "Polygon") poligonos = [feature.geometry.coordinates];
+        else if (feature.geometry.type === "MultiPolygon") poligonos = feature.geometry.coordinates;
+        for (const poligono of poligonos) pintarPoligono(ctx, poligono, canvas, "rgb(235,237,237)");
     }
 
+    texturaLecho = new THREE.CanvasTexture(canvas);
+    texturaLecho.colorSpace = THREE.SRGBColorSpace;
+    texturaLecho.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
+    materialLecho = new THREE.MeshStandardMaterial({
+        map: texturaLecho,
+        roughness: 0.99,
+        metalness: 0,
+        side: THREE.DoubleSide
+    });
+}
 
-    texturaLecho =
-        new THREE.CanvasTexture(
-            canvas
-        );
+function animarAgua(vaciar) {
+    if (!aguaGrupo || animandoAgua) return;
+    animandoAgua = true;
 
+    cerrarInfo();
+    const inicio = performance.now();
+    const zInicial = aguaGrupo.position.z;
+    const zFinal = vaciar
+        ? nivelAguaOriginal - PROFUNDIDAD_VACIADO * EXAGERACION_VERTICAL
+        : nivelAguaOriginal;
 
-    texturaLecho.colorSpace =
-        THREE.SRGBColorSpace;
+    if (vaciar && materialLecho) terreno.material = materialLecho;
+    estado.textContent = vaciar ? "Descendiendo nivel del lago..." : "Recuperando nivel del lago...";
 
+    aguaGrupo.traverse(o => {
+        if (o.isMesh) o.userData.opacityInicio = o.material.opacity;
+    });
 
-    materialLecho =
-        new THREE.MeshStandardMaterial({
+    function frame(ahora) {
+        const t = Math.min((ahora - inicio) / 2600, 1);
+        const suave = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        aguaGrupo.position.z = THREE.MathUtils.lerp(zInicial, zFinal, suave);
 
-            map:
-                texturaLecho,
-
-            roughness:
-                0.98,
-
-            metalness:
-                0,
-
-            side:
-                THREE.DoubleSide
-
+        aguaGrupo.traverse(o => {
+            if (!o.isMesh) return;
+            const op0 = o.userData.opacityInicio ?? (vaciar ? 0.82 : 0.03);
+            o.material.opacity = THREE.MathUtils.lerp(op0, vaciar ? 0.02 : 0.82, suave);
         });
 
-}
-
-
-
-/* ============================================================
-   VACÍO / LLENO
-============================================================ */
-
-function animarAgua(
-    vaciar
-) {
-
-    if (
-        !aguaGrupo ||
-        animandoAgua
-    ) {
-
-        return;
-
-    }
-
-
-    animandoAgua =
-        true;
-
-
-    const inicio =
-        performance.now();
-
-
-    const zInicial =
-        aguaGrupo.position.z;
-
-
-    const zFinal =
-
-        vaciar
-
-            ?
-
-            nivelAguaOriginal -
-
-            PROFUNDIDAD_VACIADO *
-            EXAGERACION_VERTICAL
-
-            :
-
-            nivelAguaOriginal;
-
-
-
-    if (
-        vaciar &&
-        materialLecho
-    ) {
-
-        terreno.material =
-            materialLecho;
-
-    }
-
-
-
-    estado.innerText =
-
-        vaciar
-
-            ?
-
-            "Descendiendo nivel del lago..."
-
-            :
-
-            "Recuperando nivel del lago...";
-
-
-
-    function frame(
-        ahora
-    ) {
-
-        const t =
-            Math.min(
-
-                (
-                    ahora -
-                    inicio
-                ) /
-                2600,
-
-                1
-
-            );
-
-
-        const suave =
-
-            t < 0.5
-
-                ?
-
-                2 *
-                t *
-                t
-
-                :
-
-                1 -
-
-                Math.pow(
-
-                    -2 *
-                    t +
-                    2,
-
-                    2
-
-                ) /
-                2;
-
-
-
-        aguaGrupo.position.z =
-
-            THREE.MathUtils.lerp(
-
-                zInicial,
-
-                zFinal,
-
-                suave
-
-            );
-
-
-
-        aguaGrupo.traverse(
-            o => {
-
-                if (
-                    o.isMesh
-                ) {
-
-                    o.material.opacity =
-
-                        vaciar
-
-                            ?
-
-                            THREE.MathUtils.lerp(
-
-                                0.82,
-
-                                0.03,
-
-                                suave
-
-                            )
-
-                            :
-
-                            THREE.MathUtils.lerp(
-
-                                0.03,
-
-                                0.82,
-
-                                suave
-
-                            );
-
-                }
-
-            }
-
-        );
-
-
-
-        if (
-            t < 1
-        ) {
-
-            requestAnimationFrame(
-                frame
-            );
-
-        }
-
+        if (t < 1) requestAnimationFrame(frame);
         else {
-
-            lagoVacio =
-                vaciar;
-
-
-            animandoAgua =
-                false;
-
-
-            if (
-                !vaciar
-            ) {
-
-                terreno.material =
-                    materialGeologia;
-
-            }
-
-
-            estado.innerText =
-
-                lagoVacio
-
-                    ?
-
-                    "Lecho del lago visible"
-
-                    :
-
-                    "Lago de Atitlán";
-
+            lagoVacio = vaciar;
+            animandoAgua = false;
+            if (!vaciar) terreno.material = materialGeologia;
+            estado.textContent = lagoVacio ? "Lecho del lago visible" : "Lago de Atitlán";
         }
-
     }
-
-
-    requestAnimationFrame(
-        frame
-    );
-
+    requestAnimationFrame(frame);
 }
-
-
 
 /* ============================================================
-   GEOMETRÍA DE LAS UNIDADES
+   GEOMETRÍA: AGRUPAR TODOS LOS FEATURES DE UNA UNIDAD
 ============================================================ */
-
-function recorrerCoordenadas(
-    coords,
-    callback
-) {
-
-    if (
-        typeof coords[0] ===
-        "number"
-    ) {
-
-        callback(
-            coords
-        );
-
-        return;
-
+function valorProp(props, nombres, fallback = "") {
+    for (const n of nombres) {
+        const v = props?.[n];
+        if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
     }
-
-
-    for (
-        const sub
-        of coords
-    ) {
-
-        recorrerCoordenadas(
-
-            sub,
-
-            callback
-
-        );
-
-    }
-
+    return fallback;
 }
 
-
-
-function datosFeature(
-    feature
-) {
-
-    let minX =
-        Infinity;
-
-    let maxX =
-        -Infinity;
-
-    let minY =
-        Infinity;
-
-    let maxY =
-        -Infinity;
-
-
-    const puntos =
-        [];
-
-
-    recorrerCoordenadas(
-
-        feature.geometry.coordinates,
-
-        c => {
-
-            minX =
-                Math.min(
-                    minX,
-                    c[0]
-                );
-
-
-            maxX =
-                Math.max(
-                    maxX,
-                    c[0]
-                );
-
-
-            minY =
-                Math.min(
-                    minY,
-                    c[1]
-                );
-
-
-            maxY =
-                Math.max(
-                    maxY,
-                    c[1]
-                );
-
-
-            puntos.push(
-                c
-            );
-
-        }
-
-    );
-
-
-
-    const centroBBox =
-        {
-
-            x:
-                (
-                    minX +
-                    maxX
-                ) / 2,
-
-            y:
-                (
-                    minY +
-                    maxY
-                ) / 2
-
-        };
-
-
-
-    /*
-        Elegir un punto real de la geometría
-        cercano al centro de su extensión.
-
-        Así evitamos que una etiqueta quede
-        en una zona completamente externa
-        para polígonos irregulares.
-    */
-
-    let mejor =
-        puntos[0];
-
-
-    let mejorDist =
-        Infinity;
-
-
-    for (
-        const p
-        of puntos
-    ) {
-
-        const dx =
-            p[0] -
-            centroBBox.x;
-
-
-        const dy =
-            p[1] -
-            centroBBox.y;
-
-
-        const dist =
-            dx *
-            dx +
-            dy *
-            dy;
-
-
-        if (
-            dist <
-            mejorDist
-        ) {
-
-            mejorDist =
-                dist;
-
-
-            mejor =
-                p;
-
-        }
-
-    }
-
-
-
-    return {
-
-        minX,
-
-        maxX,
-
-        minY,
-
-        maxY,
-
-
-        ancho:
-            maxX -
-            minX,
-
-
-        alto:
-            maxY -
-            minY,
-
-
-        x:
-            mejor[0],
-
-
-        y:
-            mejor[1]
-
-    };
-
+function simboloFeature(feature) {
+    return valorProp(feature.properties, ["Simbología", "Simbologia", "SIMBOLOGIA", "simbolo", "Símbolo", "Simbolo"]);
 }
 
+function featuresDeUnidad(simbolo) {
+    return (geologiaGeoJSON?.features || []).filter(f => f.geometry && simboloFeature(f) === simbolo);
+}
 
+function poligonosDeFeature(feature) {
+    if (!feature?.geometry) return [];
+    if (feature.geometry.type === "Polygon") return [feature.geometry.coordinates];
+    if (feature.geometry.type === "MultiPolygon") return feature.geometry.coordinates;
+    return [];
+}
+
+function areaAnillo(ring) {
+    let a = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    }
+    return Math.abs(a) * 0.5;
+}
+
+function puntoEnAnillo(p, ring) {
+    let dentro = false;
+    const x = p[0], y = p[1];
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const intersecta = ((yi > y) !== (yj > y)) &&
+            (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi);
+        if (intersecta) dentro = !dentro;
+    }
+    return dentro;
+}
+
+function puntoEnPoligono(p, poligono) {
+    if (!puntoEnAnillo(p, poligono[0])) return false;
+    for (let i = 1; i < poligono.length; i++) {
+        if (puntoEnAnillo(p, poligono[i])) return false;
+    }
+    return true;
+}
+
+function bboxPoligono(poligono) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const ring of poligono) {
+        for (const c of ring) {
+            minX = Math.min(minX, c[0]); maxX = Math.max(maxX, c[0]);
+            minY = Math.min(minY, c[1]); maxY = Math.max(maxY, c[1]);
+        }
+    }
+    return { minX, minY, maxX, maxY, ancho: maxX - minX, alto: maxY - minY };
+}
+
+function centroideAnillo(ring) {
+    let a = 0, cx = 0, cy = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const cross = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+        a += cross;
+        cx += (ring[j][0] + ring[i][0]) * cross;
+        cy += (ring[j][1] + ring[i][1]) * cross;
+    }
+    if (Math.abs(a) < 1e-9) return ring[Math.floor(ring.length / 2)];
+    return [cx / (3 * a), cy / (3 * a)];
+}
+
+function dist2Segmento(p, a, b) {
+    const vx = b[0] - a[0], vy = b[1] - a[1];
+    const wx = p[0] - a[0], wy = p[1] - a[1];
+    const c1 = vx * wx + vy * wy;
+    if (c1 <= 0) return (p[0]-a[0])**2 + (p[1]-a[1])**2;
+    const c2 = vx*vx + vy*vy;
+    if (c2 <= c1) return (p[0]-b[0])**2 + (p[1]-b[1])**2;
+    const t = c1 / c2;
+    const px = a[0] + t*vx, py = a[1] + t*vy;
+    return (p[0]-px)**2 + (p[1]-py)**2;
+}
+
+function distanciaBorde2(p, poligono) {
+    let d2 = Infinity;
+    for (const ring of poligono) {
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            d2 = Math.min(d2, dist2Segmento(p, ring[j], ring[i]));
+        }
+    }
+    return d2;
+}
+
+function puntoInteriorRepresentativo(poligono) {
+    const bb = bboxPoligono(poligono);
+    const centroide = centroideAnillo(poligono[0]);
+    if (puntoEnPoligono(centroide, poligono)) return centroide;
+
+    const centroBBox = [(bb.minX + bb.maxX)/2, (bb.minY + bb.maxY)/2];
+    if (puntoEnPoligono(centroBBox, poligono)) return centroBBox;
+
+    let mejor = null;
+    let mejorD2 = -1;
+    const pasos = 24;
+    for (let iy = 1; iy < pasos; iy++) {
+        const y = bb.minY + (iy / pasos) * bb.alto;
+        for (let ix = 1; ix < pasos; ix++) {
+            const x = bb.minX + (ix / pasos) * bb.ancho;
+            const p = [x, y];
+            if (!puntoEnPoligono(p, poligono)) continue;
+            const d2 = distanciaBorde2(p, poligono);
+            if (d2 > mejorD2) { mejorD2 = d2; mejor = p; }
+        }
+    }
+
+    if (mejor) return mejor;
+    return poligono[0][0];
+}
+
+function datosUnidad(features) {
+    const poligonos = [];
+    for (const f of features) poligonos.push(...poligonosDeFeature(f));
+    if (!poligonos.length) return null;
+
+    let principal = poligonos[0];
+    let areaPrincipal = areaAnillo(principal[0]);
+    for (const p of poligonos.slice(1)) {
+        const a = areaAnillo(p[0]);
+        if (a > areaPrincipal) { principal = p; areaPrincipal = a; }
+    }
+
+    const bb = bboxPoligono(principal);
+    const punto = puntoInteriorRepresentativo(principal);
+    return { ...bb, x: punto[0], y: punto[1], poligonoPrincipal: principal };
+}
 
 /* ============================================================
-   MOSTRAR ESCENA GEOLOGÍA
+   ATRIBUTOS Y TEXTO
 ============================================================ */
-
-function activarEscena(
-    tecla
-) {
-
-    const config =
-        ESCENAS[
-            tecla
-        ];
-
-
-    if (
-        !config ||
-        !geologiaGeoJSON
-    ) {
-
-        return;
-
+function valoresUnicos(features, nombres) {
+    const out = [];
+    const seen = new Set();
+    for (const f of features) {
+        const v = valorProp(f.properties, nombres);
+        if (!v) continue;
+        const key = v.toLowerCase();
+        if (!seen.has(key)) { seen.add(key); out.push(v); }
     }
-
-
-
-    const feature =
-        geologiaGeoJSON
-        .features
-        .find(
-
-            f =>
-                String(
-                    f.properties?.[
-                        "Simbología"
-                    ]
-                ) ===
-                config.simbolo
-
-        );
-
-
-
-    if (
-        !feature
-    ) {
-
-        estado.innerText =
-            "No se encontró " +
-            config.simbolo;
-
-        return;
-
-    }
-
-
-
-    featureActiva =
-        feature;
-
-
-
-    const datos =
-        datosFeature(
-            feature
-        );
-
-
-
-    const elevacion =
-        elevacionEnGTM(
-
-            datos.x,
-
-            datos.y
-
-        );
-
-
-    const z =
-
-        elevacion !== null
-
-            ?
-
-            elevacionAZ(
-                elevacion
-            )
-
-            :
-
-            (
-                elevMax -
-                elevMin
-            ) *
-            EXAGERACION_VERTICAL *
-            0.25;
-
-
-
-    const local =
-        gtmALocal(
-
-            datos.x,
-
-            datos.y
-
-        );
-
-
-
-    puntoEtiqueta3D =
-        new THREE.Vector3(
-
-            local.x,
-
-            local.y,
-
-            z +
-            180
-
-        );
-
-
-
-    /*
-        La distancia se calcula
-        usando la dimensión de
-        la unidad geológica.
-    */
-
-    const extension =
-        Math.max(
-
-            datos.ancho,
-
-            datos.alto,
-
-            2500
-
-        );
-
-
-    const distancia =
-        THREE.MathUtils.clamp(
-
-            extension *
-            1.55,
-
-            6500,
-
-            23000
-
-        );
-
-
-
-    /*
-        Giro distinto según posición
-        de la unidad respecto a la cuenca.
-
-        La cámara queda ligeramente
-        hacia fuera de la unidad y
-        mirando hacia ella/cuenca.
-    */
-
-    const dirX =
-
-        local.x === 0
-
-            ?
-
-            0.7
-
-            :
-
-            Math.sign(
-                local.x
-            );
-
-
-    const dirY =
-
-        local.y === 0
-
-            ?
-
-            -0.8
-
-            :
-
-            Math.sign(
-                local.y
-            );
-
-
-
-    const destinoCamara =
-        new THREE.Vector3(
-
-            local.x +
-            dirX *
-            distancia *
-            0.65,
-
-            local.y +
-            dirY *
-            distancia *
-            0.70,
-
-            z +
-            distancia *
-            0.62
-
-        );
-
-
-
-    const destinoObjetivo =
-        new THREE.Vector3(
-
-            local.x,
-
-            local.y,
-
-            z +
-            250
-
-        );
-
-
-
-    animarCamara(
-
-        destinoCamara,
-
-        destinoObjetivo
-
-    );
-
-
-
-    mostrarEtiqueta(
-
-        feature,
-
-        config
-
-    );
-
-
-    estado.innerText =
-
-        config.simbolo +
-        " · " +
-        feature.properties.Litología_;
-
+    return out;
 }
 
+function tituloUnidad(features, simbolo) {
+    const vals = valoresUnicos(features, ["Litología_", "Litologia_", "Litología", "Litologia", "LITOLOGIA"]);
+    return vals[0] || `Unidad geológica ${simbolo}`;
+}
 
+function descripcionUnidad(features) {
+    const vals = valoresUnicos(features, [
+        "Descripc_1", "Descripcion_1", "Descripción_1", "Descripc", "Descripcion", "Descripción",
+        "DESCRIPCION", "DESCRIPC_1", "Nombre", "NOMBRE"
+    ]);
+    if (!vals.length) return "";
+    return vals.slice(0, 3).join(" ");
+}
+
+function litologiaUnidad(features) {
+    const vals = valoresUnicos(features, ["Litología_", "Litologia_", "Litología", "Litologia", "LITOLOGIA"]);
+    return vals.length ? vals.slice(0, 3).join(" · ") : "Sin descripción litológica disponible en los campos esperados del GeoJSON.";
+}
 
 /* ============================================================
-   ANIMACIÓN CÁMARA
+   FICHA FUERA DEL MODELO + CALLOUT
 ============================================================ */
+function abrirInfo({ codigo, titulo, resumen, litologia, descripcion, edafologia, conCallout = true }) {
+    infoCodigo.textContent = codigo;
+    infoTitulo.textContent = titulo;
+    infoResumen.textContent = resumen;
+    infoLitologia.textContent = litologia;
+    infoEdafologia.textContent = edafologia;
 
-function animarCamara(
-    destinoPos,
-    destinoTarget
-) {
-
-    if (
-        animandoCamara
-    ) {
-
-        return;
-
+    if (descripcion) {
+        infoDescripcion.textContent = descripcion;
+        seccionDescripcion.style.display = "block";
+    } else {
+        infoDescripcion.textContent = "";
+        seccionDescripcion.style.display = "none";
     }
 
+    document.body.classList.add("info-open");
+    infoRail.setAttribute("aria-hidden", "false");
+    infoRail.dataset.callout = conCallout ? "1" : "0";
+    infoCard.scrollTop = 0;
+}
 
-    animandoCamara =
-        true;
+function cerrarInfo() {
+    document.body.classList.remove("info-open");
+    infoRail.setAttribute("aria-hidden", "true");
+    infoRail.dataset.callout = "0";
+    teclaActiva = null;
+    puntoCallout3D = null;
+    ocultarCallout();
+}
 
+document.getElementById("cerrarInfo").addEventListener("click", cerrarInfo);
 
-    const inicio =
-        performance.now();
+function ocultarCallout() {
+    calloutLine.style.display = "none";
+    calloutHalo.style.display = "none";
+    calloutCore.style.display = "none";
+}
 
+function mostrarCallout() {
+    calloutLine.style.display = "block";
+    calloutHalo.style.display = "block";
+    calloutCore.style.display = "block";
+}
 
-    const duracion =
-        1800;
+function actualizarCallout() {
+    if (!document.body.classList.contains("info-open") || infoRail.dataset.callout !== "1" || !puntoCallout3D) {
+        ocultarCallout();
+        return;
+    }
 
+    const ndc = puntoCallout3D.clone().project(camera);
+    if (ndc.z < -1 || ndc.z > 1 || Math.abs(ndc.x) > 1.25 || Math.abs(ndc.y) > 1.25) {
+        ocultarCallout();
+        return;
+    }
 
-    const posInicial =
-        camera.position.clone();
+    const canvasRect = renderer.domElement.getBoundingClientRect();
+    const x = canvasRect.left + (ndc.x * 0.5 + 0.5) * canvasRect.width;
+    const y = canvasRect.top + (-ndc.y * 0.5 + 0.5) * canvasRect.height;
 
+    const cardRect = infoCard.getBoundingClientRect();
+    const endX = cardRect.left;
+    const endY = THREE.MathUtils.clamp(y, cardRect.top + 72, cardRect.bottom - 72);
+    const elbowX = Math.max(x + 26, endX - 34);
 
-    const targetInicial =
-        controls.target.clone();
+    calloutLine.setAttribute("points", `${x},${y} ${elbowX},${y} ${endX},${endY}`);
+    calloutHalo.setAttribute("cx", x);
+    calloutHalo.setAttribute("cy", y);
+    calloutCore.setAttribute("cx", x);
+    calloutCore.setAttribute("cy", y);
+    mostrarCallout();
+}
 
+/* ============================================================
+   ESCENA GEOLÓGICA
+============================================================ */
+function activarEscena(tecla) {
+    const config = ESCENAS[tecla];
+    if (!config || !geologiaGeoJSON) return;
 
+    if (teclaActiva === tecla && document.body.classList.contains("info-open")) {
+        cerrarInfo();
+        return;
+    }
 
-    function frame(
-        ahora
-    ) {
+    const features = featuresDeUnidad(config.simbolo);
+    if (!features.length) {
+        estado.textContent = `No se encontró ${config.simbolo} en geologia.geojson`;
+        return;
+    }
 
-        const t =
-            Math.min(
+    const datos = datosUnidad(features);
+    if (!datos) return;
 
-                (
-                    ahora -
-                    inicio
-                ) /
-                duracion,
+    const elevacion = elevacionEnGTM(datos.x, datos.y);
+    const z = elevacion !== null
+        ? elevacionAZ(elevacion)
+        : (elevMax - elevMin) * EXAGERACION_VERTICAL * 0.25;
 
-                1
+    const local = gtmALocal(datos.x, datos.y);
+    puntoCallout3D = new THREE.Vector3(local.x, local.y, z + 140);
+    teclaActiva = tecla;
 
-            );
+    const extension = Math.max(datos.ancho, datos.alto, 2500);
+    const distancia = THREE.MathUtils.clamp(extension * 1.65, 6500, 23000);
 
+    // La cámara se coloca hacia el exterior de la cuenca respecto del punto,
+    // mirando a la unidad y conservando contexto del relieve circundante.
+    let radial = new THREE.Vector2(local.x, local.y);
+    if (radial.lengthSq() < 1) radial.set(0.7, -0.8);
+    radial.normalize();
 
-        const s =
+    const destinoCamara = new THREE.Vector3(
+        local.x + radial.x * distancia * 0.72,
+        local.y + radial.y * distancia * 0.72,
+        z + distancia * 0.64
+    );
 
-            t <
-            0.5
+    const destinoObjetivo = new THREE.Vector3(local.x, local.y, z + 190);
+    animarCamara(destinoCamara, destinoObjetivo);
 
-                ?
+    const titulo = tituloUnidad(features, config.simbolo);
+    abrirInfo({
+        codigo: config.simbolo,
+        titulo,
+        resumen: config.resumen,
+        litologia: litologiaUnidad(features),
+        descripcion: descripcionUnidad(features),
+        edafologia: config.edafologia,
+        conCallout: true
+    });
 
-                2 *
-                t *
-                t
+    estado.textContent = `${config.simbolo} · ${titulo}`;
+}
 
-                :
+/* ============================================================
+   CÁMARA SUAVE, REINICIABLE
+============================================================ */
+function animarCamara(destinoPos, destinoTarget) {
+    const token = ++cameraAnimToken;
+    const inicio = performance.now();
+    const duracion = 1850;
+    const posInicial = camera.position.clone();
+    const targetInicial = controls.target.clone();
 
-                1 -
-
-                Math.pow(
-
-                    -2 *
-                    t +
-                    2,
-
-                    2
-
-                ) /
-                2;
-
-
-
-        camera.position.lerpVectors(
-
-            posInicial,
-
-            destinoPos,
-
-            s
-
-        );
-
-
-        controls.target.lerpVectors(
-
-            targetInicial,
-
-            destinoTarget,
-
-            s
-
-        );
-
-
+    function frame(ahora) {
+        if (token !== cameraAnimToken) return;
+        const t = Math.min((ahora - inicio) / duracion, 1);
+        const s = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2;
+        camera.position.lerpVectors(posInicial, destinoPos, s);
+        controls.target.lerpVectors(targetInicial, destinoTarget, s);
         controls.update();
-
-
-
-        if (
-            t < 1
-        ) {
-
-            requestAnimationFrame(
-                frame
-            );
-
-        }
-
-        else {
-
-            animandoCamara =
-                false;
-
-        }
-
+        if (t < 1) requestAnimationFrame(frame);
     }
-
-
-    requestAnimationFrame(
-        frame
-    );
-
+    requestAnimationFrame(frame);
 }
 
-
-
-/* ============================================================
-   ETIQUETAS
-============================================================ */
-
-function mostrarEtiqueta(
-    feature,
-    config
-) {
-
-    etiquetaCodigo.innerText =
-        config.simbolo;
-
-
-    etiquetaTitulo.innerText =
-        feature.properties
-        .Litología_;
-
-
-    etiquetaResumen.innerText =
-        config.resumen;
-
-
-    etiqueta.style.display =
-        "block";
-
-
-    marcador.style.display =
-        "block";
-
-
-
-    fichaCodigo.innerText =
-        config.simbolo;
-
-
-    fichaTitulo.innerText =
-        feature.properties
-        .Litología_;
-
-
-    fichaLitologia.innerHTML =
-
-        "<strong>Litología:</strong><br>" +
-
-        (
-            feature.properties
-            .Litología_ ||
-            "Sin descripción"
-        );
-
-
-    fichaTexto.innerText =
-        config.texto;
-
-}
-
-
-
-document
-.getElementById(
-    "verMas"
-)
-.addEventListener(
-    "click",
-    () => {
-
-        ficha.style.display =
-            "block";
-
-    }
-);
-
-
-
-document
-.getElementById(
-    "cerrarFicha"
-)
-.addEventListener(
-    "click",
-    () => {
-
-        ficha.style.display =
-            "none";
-
-    }
-);
-
-
-
-/* ============================================================
-   ACTUALIZAR POSICIÓN ETIQUETA
-============================================================ */
-
-function actualizarEtiqueta() {
-
-    if (
-        !puntoEtiqueta3D ||
-        etiqueta.style.display ===
-        "none"
-    ) {
-
-        return;
-
-    }
-
-
-
-    const proyectado =
-        puntoEtiqueta3D
-        .clone()
-        .project(
-            camera
-        );
-
-
-    /*
-        Ocultar si queda detrás
-        de la cámara.
-    */
-
-    if (
-        proyectado.z <
-        -1 ||
-        proyectado.z >
-        1
-    ) {
-
-        etiqueta.style.opacity =
-            "0";
-
-
-        marcador.style.opacity =
-            "0";
-
-
-        return;
-
-    }
-
-
-    etiqueta.style.opacity =
-        "1";
-
-
-    marcador.style.opacity =
-        "1";
-
-
-
-    const x =
-
-        (
-            proyectado.x *
-            0.5 +
-            0.5
-        ) *
-
-        window.innerWidth;
-
-
-
-    const y =
-
-        (
-            -
-            proyectado.y *
-            0.5 +
-            0.5
-        ) *
-
-        window.innerHeight;
-
-
-
-    etiqueta.style.left =
-        x +
-        "px";
-
-
-    etiqueta.style.top =
-        y +
-        "px";
-
-
-    marcador.style.left =
-        x +
-        "px";
-
-
-    marcador.style.top =
-        y +
-        "px";
-
-}
-
-
+controls.addEventListener("start", () => {
+    // Si el operador toma el control manual, se cancela la interpolación activa.
+    cameraAnimToken++;
+});
 
 /* ============================================================
    FLORA / FAUNA PLACEHOLDER
 ============================================================ */
-
-function mostrarPlaceholder(
-    titulo
-) {
-
-    ficha.style.display =
-        "block";
-
-
-    fichaCodigo.innerText =
-        titulo ===
-        "Flora"
-            ?
-            "9"
-            :
-            "0";
-
-
-    fichaTitulo.innerText =
-        titulo;
-
-
-    fichaLitologia.innerText =
-        "Módulo pendiente de incorporar.";
-
-
-    fichaTexto.innerText =
-
-        "Esta escena queda reservada para incorporar fotografías, especies representativas, distribución espacial y contenido interpretativo relacionado con " +
-
-        titulo.toLowerCase() +
-
-        " de la Cuenca del Lago de Atitlán.";
-
+function mostrarPlaceholder(titulo) {
+    puntoCallout3D = null;
+    teclaActiva = null;
+    abrirInfo({
+        codigo: titulo === "Flora" ? "9" : "0",
+        titulo,
+        resumen: `Módulo reservado para integrar el contenido de ${titulo.toLowerCase()} de la Cuenca del Lago de Atitlán.`,
+        litologia: "Esta sección no utiliza información litológica.",
+        descripcion: "",
+        edafologia: titulo === "Flora"
+            ? "Aquí podrán incorporarse especies representativas, asociaciones vegetales, pisos altitudinales, fotografías y relaciones entre vegetación, humedad, suelos y sustrato geológico."
+            : "Aquí podrán incorporarse especies representativas, hábitats, fotografías y relaciones entre fauna, cobertura vegetal, agua, relieve y conectividad ecológica.",
+        conCallout: false
+    });
+    estado.textContent = `${titulo} · módulo pendiente`;
 }
-
-
 
 /* ============================================================
    TECLADO
 ============================================================ */
+window.addEventListener("keydown", e => {
+    const tecla = e.key;
 
-window.addEventListener(
-    "keydown",
-    e => {
-
-        const tecla =
-            e.key;
-
-
-        if (
-            ESCENAS[
-                tecla
-            ]
-        ) {
-
-            activarEscena(
-                tecla
-            );
-
-            return;
-
-        }
-
-
-        if (
-            tecla ===
-            "8"
-        ) {
-
-            animarAgua(
-                !lagoVacio
-            );
-
-            return;
-
-        }
-
-
-        if (
-            tecla ===
-            "9"
-        ) {
-
-            mostrarPlaceholder(
-                "Flora"
-            );
-
-            return;
-
-        }
-
-
-        if (
-            tecla ===
-            "0"
-        ) {
-
-            mostrarPlaceholder(
-                "Fauna"
-            );
-
-        }
-
+    if (tecla === "Escape") {
+        cerrarInfo();
+        return;
     }
-);
 
+    if (ESCENAS[tecla]) {
+        activarEscena(tecla);
+        return;
+    }
 
+    if (tecla === "8") {
+        animarAgua(!lagoVacio);
+        return;
+    }
+
+    if (tecla === "9") {
+        mostrarPlaceholder("Flora");
+        return;
+    }
+
+    if (tecla === "0") {
+        mostrarPlaceholder("Fauna");
+    }
+});
 
 /* ============================================================
    RESIZE
 ============================================================ */
+function ajustarRenderer() {
+    const w = Math.max(1, stage.clientWidth);
+    const h = Math.max(1, stage.clientHeight);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+}
 
-window.addEventListener(
-    "resize",
-    () => {
-
-        camera.aspect =
-
-            window.innerWidth /
-            window.innerHeight;
-
-
-        camera.updateProjectionMatrix();
-
-
-        renderer.setSize(
-
-            window.innerWidth,
-
-            window.innerHeight
-
-        );
-
-    }
-);
-
-
+window.addEventListener("resize", ajustarRenderer);
+new ResizeObserver(ajustarRenderer).observe(stage);
+ajustarRenderer();
 
 /* ============================================================
    LOOP
 ============================================================ */
-
 function animate() {
-
-    requestAnimationFrame(
-        animate
-    );
-
-
+    requestAnimationFrame(animate);
     controls.update();
-
-
-    actualizarEtiqueta();
-
-
-    renderer.render(
-
-        scene,
-
-        camera
-
-    );
-
+    actualizarCallout();
+    renderer.render(scene, camera);
 }
-
-
 animate();
-
-
 
 /* ============================================================
    INICIAR
 ============================================================ */
-
 async function iniciar() {
-
     try {
-
         await cargarDEM();
-
         await cargarGeologia();
-
         await cargarLago();
-
-
-        estado.innerText =
-            "Visor listo · teclas 1–8";
-
+        estado.textContent = "Visor listo · teclas 1–7, 8, 9 y 0";
+    } catch (error) {
+        console.error(error);
+        estado.textContent = "ERROR: " + error.message;
     }
-
-    catch(
-        error
-    ) {
-
-        console.error(
-            error
-        );
-
-
-        estado.innerText =
-
-            "ERROR: " +
-            error.message;
-
-    }
-
 }
 
-
 iniciar();
-
-
 </script>
-
 </body>
 </html>
