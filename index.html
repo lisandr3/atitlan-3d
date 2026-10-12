@@ -3,643 +3,343 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>
-    Cuenca del Lago de Atitlán - Visor 3D
-  </title>
+  <title>Cuenca del Lago de Atitlán - Visor 3D</title>
 
   <style>
-
-    html,
-    body {
-
+    html, body {
       margin: 0;
-
       width: 100%;
-
       height: 100%;
-
       overflow: hidden;
-
-      background: #101820;
-
-      font-family:
-        Arial,
-        sans-serif;
-
+      background: #b9ced3;
+      font-family: Arial, sans-serif;
     }
-
 
     #visor {
-
       width: 100%;
-
       height: 100%;
-
     }
-
 
     #panel {
-
       position: absolute;
-
       top: 18px;
-
       left: 18px;
-
       z-index: 10;
-
       color: white;
-
-      background:
-        rgba(
-          0,
-          0,
-          0,
-          0.58
-        );
-
-      padding:
-        14px
-        18px;
-
-      border-radius:
-        10px;
-
-      min-width:
-        260px;
-
-      backdrop-filter:
-        blur(5px);
-
+      background: rgba(0,0,0,0.58);
+      padding: 14px 18px;
+      border-radius: 10px;
     }
-
 
     #panel h2 {
-
-      margin:
-        0
-        0
-        6px
-        0;
-
-      font-size:
-        20px;
-
+      margin: 0 0 6px 0;
+      font-size: 20px;
     }
-
 
     #estado {
-
-      font-size:
-        14px;
-
-      opacity:
-        0.9;
-
+      font-size: 14px;
     }
-
 
     #ayuda {
-
-      margin-top:
-        8px;
-
-      font-size:
-        13px;
-
-      opacity:
-        0.85;
-
+      margin-top: 8px;
+      font-size: 13px;
+      opacity: 0.85;
     }
-
 
     #tecla8 {
-
-      position:
-        absolute;
-
-      right:
-        20px;
-
-      bottom:
-        20px;
-
-      z-index:
-        10;
-
-      color:
-        white;
-
-      background:
-        rgba(
-          0,
-          0,
-          0,
-          0.55
-        );
-
-      padding:
-        12px
-        16px;
-
-      border-radius:
-        8px;
-
-      font-size:
-        14px;
-
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      z-index: 10;
+      color: white;
+      background: rgba(0,0,0,0.55);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
     }
-
   </style>
-
 </head>
-
 
 <body>
 
-
 <div id="panel">
-
-  <h2>
-    Cuenca del Lago de Atitlán
-  </h2>
-
-  <div id="estado">
-    Cargando modelo 3D...
-  </div>
-
-  <div id="ayuda">
-    Arrastrar: rotar · rueda: zoom
-  </div>
-
+  <h2>Cuenca del Lago de Atitlán</h2>
+  <div id="estado">Cargando modelo 3D...</div>
+  <div id="ayuda">Arrastrar: rotar · rueda: zoom</div>
 </div>
-
 
 <div id="tecla8">
   Tecla 8 · Vaciar / llenar lago
 </div>
 
-
 <div id="visor"></div>
 
-
-
 <script type="importmap">
-
 {
   "imports": {
-
-    "three":
-    "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-
-    "three/addons/":
-    "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
-
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
   }
 }
-
 </script>
 
-
-<script
-  src="
-  https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js
-  ">
-</script>
-
-
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
 
 <script type="module">
 
-
-import * as THREE
-from "three";
-
-
-import {
-  OrbitControls
-}
-from "three/addons/controls/OrbitControls.js";
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 
-import {
-  GLTFLoader
-}
-from "three/addons/loaders/GLTFLoader.js";
+// --------------------------------------------------
+// RUTAS
+// --------------------------------------------------
+
+const RUTA_MODELO = "data/MODELO5.gltf";
+
+const RUTA_LAGO = "data/lago_ajustado_dem.geojson";
 
 
-
-// ==================================================
-// CONFIGURACIÓN
-// ==================================================
-
-
-// Modelo
-const RUTA_MODELO =
-  "data/MODELO5.gltf";
-
-
-// Lago
-const RUTA_LAGO =
-  "data/lago_ajustado_dem.geojson";
-
-
-// Nivel aproximado del Lago de Atitlán
-const NIVEL_LAGO =
-  1562;
-
-
-// Exageración vertical usada en QGIS
-const EXAGERACION_Z =
-  2;
-
-
-// Extensión aproximada de la escena
-// exportada desde QGIS.
-//
-// El modelo anterior tenía:
-// ~39.39 km x 39.39 km
-
-const CENTRO_X =
-  424394.5215;
-
-const CENTRO_Y =
-  1629482.4743;
-
-
-// Altura extra para evitar
-// parpadeo con el terreno
-
-const OFFSET_AGUA =
-  6;
-
-
-// Cuánto baja el agua
-// al vaciarla
-
-const PROFUNDIDAD_VACIADO =
-  1800;
-
-
-// Duración de la animación
-// en milisegundos
-
-const DURACION_ANIMACION =
-  2200;
-
-
-
-// ==================================================
-// ELEMENTOS HTML
-// ==================================================
-
-
-const contenedor =
-  document.getElementById(
-    "visor"
-  );
-
-
-const estado =
-  document.getElementById(
-    "estado"
-  );
-
-
-
-// ==================================================
+// --------------------------------------------------
 // ESCENA
-// ==================================================
+// --------------------------------------------------
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0xb9ced3);
 
 
-const scene =
-  new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(
+  42,
+  window.innerWidth / window.innerHeight,
+  1,
+  500000
+);
 
 
-scene.background =
-  new THREE.Color(
-    0xb9ced3
-  );
-
-
-
-// ==================================================
-// CÁMARA
-// ==================================================
-
-
-const camera =
-  new THREE.PerspectiveCamera(
-
-    42,
-
-    window.innerWidth /
-    window.innerHeight,
-
-    1,
-
-    500000
-
-  );
-
-
-
-// ==================================================
-// RENDERER
-// ==================================================
-
-
-const renderer =
-  new THREE.WebGLRenderer({
-
-    antialias:
-      true
-
-  });
-
+const renderer = new THREE.WebGLRenderer({
+  antialias: true
+});
 
 renderer.setSize(
-
   window.innerWidth,
-
   window.innerHeight
-
 );
-
 
 renderer.setPixelRatio(
-
-  Math.min(
-    window.devicePixelRatio,
-    2
-  )
-
+  Math.min(window.devicePixelRatio, 2)
 );
 
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-renderer.outputColorSpace =
-  THREE.SRGBColorSpace;
-
-
-contenedor.appendChild(
-
-  renderer.domElement
-
-);
+document.getElementById("visor")
+  .appendChild(renderer.domElement);
 
 
-
-// ==================================================
+// --------------------------------------------------
 // CONTROLES
-// ==================================================
+// --------------------------------------------------
 
-
-const controls =
-  new OrbitControls(
-
-    camera,
-
-    renderer.domElement
-
-  );
-
-
-controls.enableDamping =
-  true;
-
-
-controls.dampingFactor =
-  0.06;
-
-
-controls.target.set(
-  0,
-  0,
-  0
+const controls = new OrbitControls(
+  camera,
+  renderer.domElement
 );
 
+controls.enableDamping = true;
+
+controls.dampingFactor = 0.06;
 
 
-// ==================================================
-// ILUMINACIÓN
-// ==================================================
-
-
-const ambiente =
-  new THREE.HemisphereLight(
-
-    0xffffff,
-
-    0x445566,
-
-    1.7
-
-  );
-
+// --------------------------------------------------
+// LUCES
+// --------------------------------------------------
 
 scene.add(
-  ambiente
+  new THREE.HemisphereLight(
+    0xffffff,
+    0x445566,
+    1.6
+  )
 );
 
 
-
-const sol =
-  new THREE.DirectionalLight(
-
-    0xffffff,
-
-    2.2
-
-  );
-
+const sol = new THREE.DirectionalLight(
+  0xffffff,
+  2.2
+);
 
 sol.position.set(
-
   -25000,
-
   30000,
-
   25000
-
 );
 
-
-scene.add(
-  sol
-);
+scene.add(sol);
 
 
-
-// ==================================================
-// GRUPO GENERAL
-// ==================================================
-
-
-const grupoEscena =
-  new THREE.Group();
-
-
-scene.add(
-  grupoEscena
-);
-
-
-
-// ==================================================
-// PROYECCIÓN GTM
-// ==================================================
-
+// --------------------------------------------------
+// GTM
+// --------------------------------------------------
 
 proj4.defs(
-
   "GTM",
-
-  "+proj=tmerc " +
-  "+lat_0=0 " +
-  "+lon_0=-90.5 " +
-  "+k=0.9998 " +
-  "+x_0=500000 " +
-  "+y_0=0 " +
-  "+datum=WGS84 " +
-  "+units=m " +
-  "+no_defs"
-
+  "+proj=tmerc +lat_0=0 +lon_0=-90.5 +k=0.9998 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs"
 );
 
 
-
-// ==================================================
+// --------------------------------------------------
 // VARIABLES
-// ==================================================
+// --------------------------------------------------
+
+const estado =
+  document.getElementById("estado");
 
 
-let modelo = null;
+let modelo;
+
+let aguaGrupo;
+
+let lagoVacio = false;
+
+let animando = false;
+
+let nivelAguaOriginal = 0;
+
+let cajaModelo;
+
+let tamañoModelo;
+
+let centroModelo;
 
 
-let aguaGrupo = null;
+// --------------------------------------------------
+// CARGAR MODELO
+// --------------------------------------------------
 
-
-let modeloCargado =
-  false;
-
-
-let lagoCargado =
-  false;
-
-
-let lagoVacio =
-  false;
-
-
-let animando =
-  false;
-
-
-let nivelAguaOriginal =
-  0;
-
-
-
-// ==================================================
-// CARGAR MODELO GLTF
-// ==================================================
-
-
-const loader =
-  new GLTFLoader();
-
+const loader = new GLTFLoader();
 
 loader.load(
 
   RUTA_MODELO,
 
+  async gltf => {
 
-  function(gltf) {
+    modelo = gltf.scene;
+
+    scene.add(modelo);
 
 
-    modelo =
-      gltf.scene;
+    modelo.updateMatrixWorld(true);
 
 
-    grupoEscena.add(
-      modelo
+    cajaModelo =
+      new THREE.Box3()
+        .setFromObject(modelo);
+
+
+    tamañoModelo =
+      new THREE.Vector3();
+
+
+    centroModelo =
+      new THREE.Vector3();
+
+
+    cajaModelo.getSize(
+      tamañoModelo
     );
 
 
-    modeloCargado =
-      true;
+    cajaModelo.getCenter(
+      centroModelo
+    );
+
+
+    console.log(
+      "Centro modelo:",
+      centroModelo
+    );
+
+    console.log(
+      "Tamaño modelo:",
+      tamañoModelo
+    );
+
+
+    // Cámara inicial
+
+    const maxDim =
+      Math.max(
+        tamañoModelo.x,
+        tamañoModelo.z
+      );
+
+
+    camera.position.set(
+      centroModelo.x +
+      maxDim * 0.55,
+
+      centroModelo.y +
+      maxDim * 0.45,
+
+      centroModelo.z +
+      maxDim * 0.8
+    );
+
+
+    controls.target.copy(
+      centroModelo
+    );
+
+    controls.update();
 
 
     estado.innerText =
-      "Modelo cargado · cargando lago...";
+      "Modelo cargado · preparando lago...";
 
 
-    cargarLago();
-
+    await cargarLago();
 
   },
 
+  xhr => {
 
-  function(xhr) {
+    if (xhr.total) {
 
-
-    if (
-      xhr.total > 0
-    ) {
-
-
-      const porcentaje =
+      const p =
         Math.round(
-
           xhr.loaded /
           xhr.total *
           100
-
         );
-
 
       estado.innerText =
         "Cargando modelo: " +
-        porcentaje +
+        p +
         "%";
-
-
     }
 
   },
 
+  error => {
 
-  function(error) {
-
-
-    console.error(
-      error
-    );
-
+    console.error(error);
 
     estado.innerText =
       "ERROR cargando MODELO5.gltf";
-
-
   }
 
 );
 
 
-
-// ==================================================
+// --------------------------------------------------
 // CARGAR LAGO
-// ==================================================
-
+// --------------------------------------------------
 
 async function cargarLago() {
-
 
   const respuesta =
     await fetch(
@@ -647,69 +347,236 @@ async function cargarLago() {
     );
 
 
-  if (
-    !respuesta.ok
-  ) {
-
-
-    throw new Error(
-      "No se pudo cargar el GeoJSON del lago"
-    );
-
-
-  }
-
-
   const geojson =
     await respuesta.json();
 
 
+  // --------------------------------------------------
+  // EXTRAER TODAS LAS COORDENADAS DEL GEOJSON
+  // --------------------------------------------------
+
+  const puntosGTM = [];
+
+
+  function guardarCoords(coords) {
+
+    if (
+      typeof coords[0] === "number"
+    ) {
+
+      const lon = coords[0];
+
+      const lat = coords[1];
+
+
+      const p =
+        proj4(
+          "EPSG:4326",
+          "GTM",
+          [lon, lat]
+        );
+
+
+      puntosGTM.push(
+        new THREE.Vector2(
+          p[0],
+          p[1]
+        )
+      );
+
+    }
+
+    else {
+
+      coords.forEach(
+        guardarCoords
+      );
+
+    }
+
+  }
+
+
+  geojson.features.forEach(
+    f =>
+      guardarCoords(
+        f.geometry.coordinates
+      )
+  );
+
+
+  // --------------------------------------------------
+  // BBOX GEOJSON
+  // --------------------------------------------------
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+
+  puntosGTM.forEach(p => {
+
+    minX = Math.min(
+      minX,
+      p.x
+    );
+
+    maxX = Math.max(
+      maxX,
+      p.x
+    );
+
+    minY = Math.min(
+      minY,
+      p.y
+    );
+
+    maxY = Math.max(
+      maxY,
+      p.y
+    );
+
+  });
+
+
+  const centroLagoX =
+    (minX + maxX) / 2;
+
+
+  const centroLagoY =
+    (minY + maxY) / 2;
+
+
+  // --------------------------------------------------
+  // ESCALA
+  // --------------------------------------------------
+
+  /*
+    Aquí hacemos que las dimensiones
+    del GeoJSON se adapten al mismo
+    espacio horizontal del modelo.
+  */
+
+
+  const anchoGeo =
+    maxX - minX;
+
+
+  const altoGeo =
+    maxY - minY;
+
+
+  /*
+    El modelo completo es mayor que el lago,
+    así que necesitamos la relación correcta.
+
+    Se toma como referencia la extensión
+    real conocida del DEM.
+  */
+
+
+  const DEM_MIN_X = 412522.0215;
+  const DEM_MAX_X = 436267.0215;
+
+  const DEM_MIN_Y = 1612622.4743;
+  const DEM_MAX_Y = 1646342.4743;
+
+
+  function coordModelo(
+    lon,
+    lat
+  ) {
+
+    const p =
+      proj4(
+        "EPSG:4326",
+        "GTM",
+        [lon, lat]
+      );
+
+
+    const nx =
+      (
+        p[0] -
+        DEM_MIN_X
+      ) /
+      (
+        DEM_MAX_X -
+        DEM_MIN_X
+      );
+
+
+    const ny =
+      (
+        p[1] -
+        DEM_MIN_Y
+      ) /
+      (
+        DEM_MAX_Y -
+        DEM_MIN_Y
+      );
+
+
+    const x =
+      cajaModelo.min.x +
+      nx *
+      tamañoModelo.x;
+
+
+    /*
+      El eje norte-sur del DEM
+      pasa al eje Z en Three.js.
+    */
+
+
+    const z =
+      cajaModelo.max.z -
+      ny *
+      tamañoModelo.z;
+
+
+    return new THREE.Vector2(
+      x,
+      z
+    );
+
+  }
+
+
+  // --------------------------------------------------
+  // GRUPO AGUA
+  // --------------------------------------------------
 
   aguaGrupo =
     new THREE.Group();
 
 
-
-  // Nivel vertical del agua
-  //
-  // El GLTF exportado desde QGIS
-  // conserva elevaciones y después
-  // usa exageración vertical x2.
-
-
-  nivelAguaOriginal =
-
-    NIVEL_LAGO *
-    EXAGERACION_Z +
-    OFFSET_AGUA;
-
-
-
-  aguaGrupo.position.y =
-    nivelAguaOriginal;
-
+  scene.add(
+    aguaGrupo
+  );
 
 
   const materialAgua =
     new THREE.MeshPhysicalMaterial({
 
       color:
-        0x147fa8,
+        0x157fa8,
 
       transparent:
         true,
 
       opacity:
-        0.76,
+        0.75,
 
       roughness:
-        0.15,
+        0.12,
 
       metalness:
-        0.05,
+        0.03,
 
       transmission:
-        0.08,
+        0.12,
 
       side:
         THREE.DoubleSide,
@@ -720,21 +587,14 @@ async function cargarLago() {
     });
 
 
+  // --------------------------------------------------
+  // CREAR POLÍGONOS
+  // --------------------------------------------------
 
   for (
     const feature
     of geojson.features
   ) {
-
-
-    if (
-      !feature.geometry
-    ) {
-
-      continue;
-
-    }
-
 
     let poligonos = [];
 
@@ -744,38 +604,26 @@ async function cargarLago() {
       "Polygon"
     ) {
 
-
       poligonos = [
-
         feature.geometry.coordinates
-
       ];
 
-
     }
-
 
     else if (
       feature.geometry.type ===
       "MultiPolygon"
     ) {
 
-
       poligonos =
         feature.geometry.coordinates;
 
-
     }
-
 
     else {
 
-
       continue;
-
-
     }
-
 
 
     for (
@@ -783,88 +631,64 @@ async function cargarLago() {
       of poligonos
     ) {
 
-
       const exterior =
         poligono[0].map(
-          coordenadaAModelo
+          c =>
+            coordModelo(
+              c[0],
+              c[1]
+            )
         );
 
+
+      /*
+        Creamos shape usando X y Z
+      */
 
       const shape =
-        new THREE.Shape(
-          exterior
-        );
+        new THREE.Shape();
 
 
+      shape.moveTo(
+        exterior[0].x,
+        exterior[0].y
+      );
 
-      // Huecos interiores
-      if (
-        poligono.length > 1
+
+      for (
+        let i = 1;
+        i < exterior.length;
+        i++
       ) {
 
-
-        for (
-          let i = 1;
-          i < poligono.length;
-          i++
-        ) {
-
-
-          const hueco =
-            poligono[i].map(
-              coordenadaAModelo
-            );
-
-
-          const path =
-            new THREE.Path(
-              hueco
-            );
-
-
-          shape.holes.push(
-            path
-          );
-
-
-        }
-
+        shape.lineTo(
+          exterior[i].x,
+          exterior[i].y
+        );
 
       }
 
 
-
-      const geometria =
+      const geom =
         new THREE.ShapeGeometry(
           shape
         );
 
 
-      // ShapeGeometry nace en XY.
-      //
-      // Nuestro terreno usa:
-      //
-      // X = horizontal este-oeste
-      // Y = elevación
-      // Z = horizontal norte-sur
-      //
-      // Por eso giramos la superficie
-      // del agua hacia el plano XZ.
+      /*
+        ShapeGeometry se genera en XY.
+        Lo convertimos a XZ.
+      */
 
-
-      geometria.rotateX(
-        -Math.PI / 2
+      geom.rotateX(
+        Math.PI / 2
       );
-
 
 
       const agua =
         new THREE.Mesh(
-
-          geometria,
-
+          geom,
           materialAgua
-
         );
 
 
@@ -872,243 +696,197 @@ async function cargarLago() {
         agua
       );
 
+    }
+
+  }
+
+
+  // --------------------------------------------------
+  // BUSCAR NIVEL DEL LAGO AUTOMÁTICAMENTE
+  // --------------------------------------------------
+
+  const raycaster =
+    new THREE.Raycaster();
+
+
+  const muestrasY = [];
+
+
+  let contador = 0;
+
+
+  for (
+    const feature
+    of geojson.features
+  ) {
+
+    let anillos = [];
+
+
+    if (
+      feature.geometry.type ===
+      "Polygon"
+    ) {
+
+      anillos = [
+        feature.geometry.coordinates[0]
+      ];
+
+    }
+
+    else if (
+      feature.geometry.type ===
+      "MultiPolygon"
+    ) {
+
+      anillos =
+        feature.geometry.coordinates.map(
+          p => p[0]
+        );
 
     }
 
 
+    for (
+      const anillo
+      of anillos
+    ) {
+
+
+      for (
+        let i = 0;
+        i < anillo.length;
+        i += 50
+      ) {
+
+
+        const c =
+          coordModelo(
+            anillo[i][0],
+            anillo[i][1]
+          );
+
+
+        const origen =
+          new THREE.Vector3(
+
+            c.x,
+
+            cajaModelo.max.y +
+            10000,
+
+            c.y
+
+          );
+
+
+        raycaster.set(
+
+          origen,
+
+          new THREE.Vector3(
+            0,
+            -1,
+            0
+          )
+
+        );
+
+
+        const hits =
+          raycaster.intersectObject(
+            modelo,
+            true
+          );
+
+
+        if (
+          hits.length > 0
+        ) {
+
+          muestrasY.push(
+            hits[0].point.y
+          );
+
+        }
+
+
+        contador++;
+
+      }
+
+    }
+
   }
 
 
-
-  grupoEscena.add(
-    aguaGrupo
+  console.log(
+    "Muestras borde:",
+    muestrasY.length
   );
-
-
-  lagoCargado =
-    true;
-
-
-
-  prepararVista();
-
-
-  estado.innerText =
-    "Modelo listo · pulsa 8 para vaciar el lago";
-
-
-}
-
-
-
-// ==================================================
-// CONVERTIR GEOJSON A COORDENADAS DEL GLTF
-// ==================================================
-
-
-function coordenadaAModelo(
-  coordenada
-) {
-
-
-  const lon =
-    coordenada[0];
-
-
-  const lat =
-    coordenada[1];
-
-
-
-  const proyectada =
-    proj4(
-
-      "EPSG:4326",
-
-      "GTM",
-
-      [
-        lon,
-        lat
-      ]
-
-    );
-
-
-
-  const x =
-
-    proyectada[0] -
-    CENTRO_X;
-
-
-
-  const norte =
-
-    proyectada[1] -
-    CENTRO_Y;
-
-
-
-  /*
-    El modelo exportado por QGIS
-    transforma el norte-sur del terreno
-    al eje Z de Three.js.
-
-    Se invierte porque el nodo raíz
-    del GLTF rota el plano GIS.
-  */
-
-
-  const z =
-    -norte;
-
-
-
-  /*
-    THREE.Shape necesita Vector2.
-
-    Aquí devolvemos:
-
-    x -> X del modelo
-    y -> Z del modelo
-
-    Luego ShapeGeometry se rota
-    hacia el plano XZ.
-  */
-
-
-  return new THREE.Vector2(
-
-    x,
-
-    -z
-
-  );
-
-
-}
-
-
-
-// ==================================================
-// CENTRAR MODELO Y CÁMARA
-// ==================================================
-
-
-function prepararVista() {
 
 
   if (
-    !modeloCargado ||
-    !lagoCargado
+    muestrasY.length
   ) {
 
-    return;
+    muestrasY.sort(
+      (a,b) =>
+        a - b
+    );
+
+
+    /*
+      mediana del borde
+    */
+
+    nivelAguaOriginal =
+      muestrasY[
+        Math.floor(
+          muestrasY.length / 2
+        )
+      ] +
+      5;
+
+  }
+
+  else {
+
+    /*
+      fallback
+    */
+
+    nivelAguaOriginal =
+      cajaModelo.min.y +
+      tamañoModelo.y *
+      0.35;
 
   }
 
 
-
-  const caja =
-    new THREE.Box3()
-      .setFromObject(
-        modelo
-      );
+  aguaGrupo.position.y =
+    nivelAguaOriginal;
 
 
-  const centro =
-    new THREE.Vector3();
-
-
-  const tamaño =
-    new THREE.Vector3();
-
-
-
-  caja.getCenter(
-    centro
+  console.log(
+    "Nivel agua:",
+    nivelAguaOriginal
   );
 
 
-  caja.getSize(
-    tamaño
-  );
-
-
-
-  /*
-    Centramos TODO el conjunto:
-    terreno + agua.
-  */
-
-
-  grupoEscena.position.set(
-
-    -centro.x,
-
-    -centro.y,
-
-    -centro.z
-
-  );
-
-
-
-  const maxDimension =
-    Math.max(
-
-      tamaño.x,
-
-      tamaño.z
-
-    );
-
-
-
-  camera.position.set(
-
-    maxDimension *
-    0.65,
-
-    maxDimension *
-    0.52,
-
-    maxDimension *
-    0.85
-
-  );
-
-
-
-  controls.target.set(
-
-    0,
-
-    tamaño.y *
-    0.04,
-
-    0
-
-  );
-
-
-  controls.update();
-
+  estado.innerText =
+    "Lago cargado · pulsa 8 para vaciar";
 
 }
 
 
-
-// ==================================================
-// ANIMACIÓN DEL AGUA
-// ==================================================
-
+// --------------------------------------------------
+// ANIMACIÓN
+// --------------------------------------------------
 
 function animarAgua(
   vaciar
 ) {
-
 
   if (
     !aguaGrupo ||
@@ -1120,20 +898,20 @@ function animarAgua(
   }
 
 
-
-  animando =
-    true;
-
+  animando = true;
 
 
   const inicio =
     performance.now();
 
 
-
   const yInicial =
     aguaGrupo.position.y;
 
+
+  const profundidad =
+    tamañoModelo.y *
+    0.7;
 
 
   const yFinal =
@@ -1142,181 +920,101 @@ function animarAgua(
       ?
 
       nivelAguaOriginal -
-      PROFUNDIDAD_VACIADO *
-      EXAGERACION_Z
+      profundidad
 
       :
 
       nivelAguaOriginal;
 
 
-
-  estado.innerText =
-    vaciar
-
-      ?
-
-      "Vaciando Lago de Atitlán..."
-
-      :
-
-      "Llenando Lago de Atitlán...";
-
-
-
   function paso(
     ahora
   ) {
 
-
-    const progreso =
+    const t =
       Math.min(
-
         (
           ahora -
           inicio
         ) /
-        DURACION_ANIMACION,
-
+        2500,
         1
-
       );
 
 
-
-    /*
-      Suavizado easeInOut
-    */
-
-
-    const suave =
-
-      progreso <
-      0.5
+    const s =
+      t < 0.5
 
         ?
 
-        2 *
-        progreso *
-        progreso
+        2 * t * t
 
         :
 
         1 -
         Math.pow(
-
-          -2 *
-          progreso +
-          2,
-
+          -2 * t + 2,
           2
-
-        ) /
-        2;
-
+        ) / 2;
 
 
     aguaGrupo.position.y =
-
       THREE.MathUtils.lerp(
-
         yInicial,
-
         yFinal,
-
-        suave
-
+        s
       );
 
 
-
-    /*
-      Mientras baja,
-      también pierde
-      un poco de opacidad.
-    */
-
-
     aguaGrupo.traverse(
-      objeto => {
-
+      obj => {
 
         if (
-          objeto.isMesh &&
-          objeto.material
+          obj.isMesh
         ) {
 
-
-          if (
+          obj.material.opacity =
             vaciar
-          ) {
 
-
-            objeto.material.opacity =
+              ?
 
               THREE.MathUtils.lerp(
+                0.75,
+                0.05,
+                s
+              )
 
-                0.76,
-
-                0.15,
-
-                suave
-
-              );
-
-
-          }
-
-
-          else {
-
-
-            objeto.material.opacity =
+              :
 
               THREE.MathUtils.lerp(
-
-                0.15,
-
-                0.76,
-
-                suave
-
+                0.05,
+                0.75,
+                s
               );
-
-
-          }
-
 
         }
-
 
       }
     );
 
 
-
     if (
-      progreso < 1
+      t < 1
     ) {
-
 
       requestAnimationFrame(
         paso
       );
 
-
     }
-
 
     else {
 
+      lagoVacio =
+        vaciar;
 
       animando =
         false;
-
-
-      lagoVacio =
-        vaciar;
 
 
       estado.innerText =
@@ -1328,130 +1026,90 @@ function animarAgua(
 
           :
 
-          "Lago lleno · pulsa 8 para vaciar";
-
+          "Lago lleno";
 
     }
 
-
   }
-
 
 
   requestAnimationFrame(
     paso
   );
 
-
 }
 
 
-
-// ==================================================
+// --------------------------------------------------
 // TECLA 8
-// ==================================================
-
+// --------------------------------------------------
 
 window.addEventListener(
-
   "keydown",
-
-  evento => {
-
+  e => {
 
     if (
-      evento.code ===
+      e.code ===
       "Digit8" ||
-
-      evento.code ===
+      e.code ===
       "Numpad8"
     ) {
-
 
       animarAgua(
         !lagoVacio
       );
 
-
     }
 
-
   }
-
 );
 
 
-
-// ==================================================
+// --------------------------------------------------
 // RESIZE
-// ==================================================
-
+// --------------------------------------------------
 
 window.addEventListener(
-
   "resize",
-
   () => {
 
-
     camera.aspect =
-
       window.innerWidth /
       window.innerHeight;
 
-
     camera.updateProjectionMatrix();
 
-
     renderer.setSize(
-
       window.innerWidth,
-
       window.innerHeight
-
     );
 
-
   }
-
 );
 
 
-
-// ==================================================
+// --------------------------------------------------
 // LOOP
-// ==================================================
-
+// --------------------------------------------------
 
 function animate() {
-
 
   requestAnimationFrame(
     animate
   );
 
-
   controls.update();
 
-
   renderer.render(
-
     scene,
-
     camera
-
   );
-
 
 }
 
-
 animate();
 
-
-
 </script>
-
 
 </body>
 
