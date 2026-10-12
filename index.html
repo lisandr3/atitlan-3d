@@ -67,7 +67,7 @@ body.info-open #stage { right: var(--rail-w); }
 #mainHeader h1 {
     margin: 0;
     color: var(--navy);
-    font-size: clamp(22px, 2.2vw, 34px);
+    font-size: clamp(18px, 1.65vw, 26px);
     line-height: 1.08;
     font-weight: 800;
     letter-spacing: -.025em;
@@ -218,7 +218,7 @@ body.info-open #infoRail { transform: translateX(0); }
     margin: 0 auto 24px;
     max-width: 390px;
     color: #0d1117;
-    font-size: clamp(22px, 2vw, 28px);
+    font-size: clamp(18px, 1.45vw, 23px);
     line-height: 1.12;
     text-align: center;
     font-weight: 800;
@@ -233,7 +233,7 @@ body.info-open #infoRail { transform: translateX(0); }
 .info-section h4 {
     margin: 0 0 10px;
     color: #111820;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.25;
     text-align: center;
     font-weight: 800;
@@ -277,12 +277,73 @@ body.info-open #infoRail { transform: translateX(0); }
 #calloutCore { fill: var(--navy); }
 
 /* =========================================================
+   MUESTRAS DE ROCA — SOLO ESCENA 4 (Tcf2)
+========================================================= */
+#rockGallery {
+    position: absolute;
+    top: 51%;
+    right: 16px;
+    z-index: 68;
+    width: clamp(116px, 10.5vw, 154px);
+    display: grid;
+    gap: 9px;
+    transform: translateY(-50%) translateX(14px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 260ms ease, transform 320ms cubic-bezier(.2,.75,.25,1), visibility 0s linear 320ms;
+}
+#rockGallery.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+    transition-delay: 0s;
+}
+#rockGalleryTitle {
+    margin: 0 0 1px;
+    color: var(--navy);
+    font-size: 11px;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(255,255,255,.9);
+}
+.rock-sample {
+    margin: 0;
+    padding: 5px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: 12px;
+    background: rgba(248,250,251,.90);
+    box-shadow: 0 8px 20px rgba(15,42,57,.16);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+}
+.rock-sample img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #e7ecef;
+}
+.rock-sample figcaption {
+    padding: 5px 2px 1px;
+    color: #17242d;
+    font-size: 11px;
+    line-height: 1.15;
+    font-weight: 750;
+    text-align: center;
+}
+
+/* =========================================================
    RESPONSIVE / TELÉFONO
 ========================================================= */
 @media (max-width: 900px) {
     :root { --rail-w: 100vw; }
     #mainHeader { top: 10px; width: calc(100% - 28px); }
-    #mainHeader h1 { font-size: clamp(18px, 5.2vw, 25px); }
+    #mainHeader h1 { font-size: clamp(16px, 4.4vw, 21px); }
     #estado { margin-top: 4px; font-size: 10.5px; }
 
     body.info-open #stage {
@@ -304,10 +365,30 @@ body.info-open #infoRail { transform: translateX(0); }
     }
     body.info-open #infoRail { transform: translateY(0); }
     #infoCard { padding: 2px 2px 18px; }
-    #infoTitulo { font-size: 20px; margin-bottom: 16px; padding: 0 26px; }
+    #infoTitulo { font-size: 18px; margin-bottom: 14px; padding: 0 24px; }
     .info-section { margin-top: 15px; padding-top: 14px; }
     .info-section h4 { font-size: 14px; }
     .info-section p { font-size: 13.5px; line-height: 1.58; text-align: left; }
+
+    #rockGallery {
+        top: auto;
+        right: auto;
+        left: 50%;
+        bottom: 82px;
+        width: min(330px, calc(100vw - 24px));
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        transform: translateX(-50%) translateY(8px);
+    }
+    #rockGallery.is-visible { transform: translateX(-50%) translateY(0); }
+    #rockGalleryTitle {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+        font-size: 10px;
+    }
+    .rock-sample { padding: 4px; border-radius: 10px; }
+    .rock-sample img { aspect-ratio: 1.45 / 1; border-radius: 7px; }
+    .rock-sample figcaption { font-size: 10px; padding-top: 4px; }
 
     #sceneDock {
         left: 50%;
@@ -352,6 +433,23 @@ body.info-open #infoRail { transform: translateX(0); }
         <h1>Geología, Fauna y Flora de la Cuenca del Lago de Atitlán</h1>
         <div id="estado">Cargando modelo 3D…</div>
     </header>
+
+    <!-- Muestras litológicas exclusivas de la escena 4 / Tcf2 -->
+    <div id="rockGallery" aria-hidden="true">
+        <div id="rockGalleryTitle">Ejemplos de roca</div>
+        <figure class="rock-sample">
+            <img src="data/Areniscas.png" alt="Muestra de arenisca de referencia para la unidad Tcf2">
+            <figcaption>Arenisca</figcaption>
+        </figure>
+        <figure class="rock-sample">
+            <img src="data/lutita.png" alt="Muestra de lutita de referencia para la unidad Tcf2">
+            <figcaption>Lutita</figcaption>
+        </figure>
+        <figure class="rock-sample">
+            <img src="data/Pizarras.png" alt="Muestra de pizarra de referencia para la unidad Tcf2">
+            <figcaption>Pizarra</figcaption>
+        </figure>
+    </div>
 </div>
 
 <aside id="infoRail" aria-hidden="true">
@@ -420,9 +518,10 @@ const EXAGERACION_VERTICAL = 2.0;
 const COLUMNAS = 450;
 const TEXTURA_RES = 2048;
 const COTA_LAGO = 1562;
-const DESPLAZAMIENTO_VISUAL_AGUA = 55;
-const OFFSET_AGUA = 14;
-const DURACION_AGUA = 1800;
+const OFFSET_AGUA = 10;
+const DURACION_AGUA = 4600;
+const TEXTURA_ALTURA_RES = 1200;
+const MARGEN_VACIADO_METROS = 24;
 
 /* ============================================================
    ESCENAS GEOLÓGICAS
@@ -485,6 +584,7 @@ const calloutLine = document.getElementById("calloutLine");
 const calloutHalo = document.getElementById("calloutHalo");
 const calloutCore = document.getElementById("calloutCore");
 const sceneButtons = [...document.querySelectorAll(".scene-key")];
+const rockGallery = document.getElementById("rockGallery");
 
 /* ============================================================
    THREE
@@ -524,8 +624,9 @@ let demRaster, demWidth, demHeight, demNoData;
 let bbox, centroX, centroY, anchoTerreno, altoTerreno;
 let elevMin = Infinity, elevMax = -Infinity;
 let terreno, materialBase, materialGeologia;
-let texturaGeologia, texturaLecho;
-let aguaGrupo, aguaMaterial, nivelAguaOriginal;
+let texturaGeologia, texturaLecho, texturaAlturaDEM;
+let aguaGrupo, aguaMaterial, nivelAguaOriginal, nivelAguaFinal;
+let centroLagoLocal = new THREE.Vector2(0, 0);
 let lagoVacio = false;
 let objetivoLagoVacio = false;
 let lakeAnimToken = 0;
@@ -843,11 +944,107 @@ function crearShapeLago(poligono) {
     return shape;
 }
 
+function centroBBoxGeoJSON(geojson) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const visitar = coords => {
+        if (!Array.isArray(coords)) return;
+        if (typeof coords[0] === "number") {
+            const x = coords[0], y = coords[1];
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+            return;
+        }
+        for (const c of coords) visitar(c);
+    };
+    for (const f of geojson.features || []) if (f.geometry) visitar(f.geometry.coordinates);
+    if (!Number.isFinite(minX)) return new THREE.Vector2(0, 0);
+    return gtmALocal((minX + maxX) / 2, (minY + maxY) / 2);
+}
+
+function crearTexturaAlturaParaLago(lagoGeoJSON) {
+    const w = Math.max(256, Math.min(TEXTURA_ALTURA_RES, demWidth));
+    const h = Math.max(2, Math.round(w * demHeight / demWidth));
+
+    // Máscara del lago para calcular automáticamente la profundidad mínima.
+    const maskCanvas = document.createElement("canvas");
+    maskCanvas.width = w;
+    maskCanvas.height = h;
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+    maskCtx.clearRect(0, 0, w, h);
+    for (const feature of lagoGeoJSON.features || []) {
+        if (!feature.geometry) continue;
+        let poligonos = [];
+        if (feature.geometry.type === "Polygon") poligonos = [feature.geometry.coordinates];
+        else if (feature.geometry.type === "MultiPolygon") poligonos = feature.geometry.coordinates;
+        for (const poligono of poligonos) pintarPoligono(maskCtx, poligono, maskCanvas, "rgba(255,255,255,1)");
+    }
+    const mask = maskCtx.getImageData(0, 0, w, h).data;
+
+    // La elevación se empaqueta en dos canales (16 bits) para conservar precisión.
+    // El shader hace interpolación bilineal manual y evita el escalonado/pixelado.
+    const heightCanvas = document.createElement("canvas");
+    heightCanvas.width = w;
+    heightCanvas.height = h;
+    const heightCtx = heightCanvas.getContext("2d");
+    const img = heightCtx.createImageData(w, h);
+    const out = img.data;
+    const rango = Math.max(1e-6, elevMax - elevMin);
+    let minLago = Infinity;
+
+    for (let y = 0; y < h; y++) {
+        const py = Math.round(y / (h - 1) * (demHeight - 1));
+        for (let x = 0; x < w; x++) {
+            const px = Math.round(x / (w - 1) * (demWidth - 1));
+            const z = demRaster[py * demWidth + px];
+            const idx = (y * w + x) * 4;
+            const valido = valorValido(z);
+            const zz = valido ? z : elevMax;
+            const norm = THREE.MathUtils.clamp((zz - elevMin) / rango, 0, 1);
+            const q = Math.round(norm * 65535);
+            out[idx] = (q >> 8) & 255;
+            out[idx + 1] = q & 255;
+            out[idx + 2] = 0;
+            out[idx + 3] = 255;
+
+            if (valido && mask[idx + 3] > 20) minLago = Math.min(minLago, z);
+        }
+    }
+    heightCtx.putImageData(img, 0, 0);
+
+    const texture = new THREE.CanvasTexture(heightCanvas);
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.generateMipmaps = false;
+
+    if (!Number.isFinite(minLago)) minLago = COTA_LAGO - 400;
+
+    return {
+        texture,
+        size: new THREE.Vector2(w, h),
+        minLagoZ: elevacionAZ(minLago)
+    };
+}
+
+function fijarNivelAgua(nivelHidraulicoZ) {
+    if (!aguaGrupo || !aguaMaterial) return;
+    aguaGrupo.position.z = nivelHidraulicoZ + OFFSET_AGUA;
+    aguaMaterial.userData.nivelActual = nivelHidraulicoZ;
+    const shader = aguaMaterial.userData.shader;
+    if (shader?.uniforms?.uWaterLevelZ) shader.uniforms.uWaterLevelZ.value = nivelHidraulicoZ;
+}
+
 async function cargarLago() {
     estado.textContent = "Preparando lago…";
     const response = await fetch(RUTA_LAGO);
     if (!response.ok) throw new Error("No se pudo cargar lago2.geojson");
     const geojson = await response.json();
+
+    centroLagoLocal = centroBBoxGeoJSON(geojson);
+    const altura = crearTexturaAlturaParaLago(geojson);
+    texturaAlturaDEM = altura.texture;
 
     aguaGrupo = new THREE.Group();
     scene.add(aguaGrupo);
@@ -855,22 +1052,88 @@ async function cargarLago() {
     aguaMaterial = new THREE.MeshPhysicalMaterial({
         color: 0x187fa8,
         transparent: true,
-        opacity: 0.78,
-        roughness: 0.24,
-        metalness: 0.02,
-        clearcoat: 0.28,
-        clearcoatRoughness: 0.34,
-        side: THREE.DoubleSide,
+        opacity: 0.80,
+        roughness: 0.20,
+        metalness: 0.01,
+        clearcoat: 0.34,
+        clearcoatRoughness: 0.30,
+        side: THREE.FrontSide,
         depthWrite: false,
         depthTest: true,
         polygonOffset: true,
-        polygonOffsetFactor: -7,
-        polygonOffsetUnits: -7,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -3,
         alphaToCoverage: true
     });
 
-    nivelAguaOriginal = elevacionAZ(COTA_LAGO) + OFFSET_AGUA;
-    aguaGrupo.position.z = nivelAguaOriginal;
+    // La lámina sigue siendo plana, pero el fragment shader consulta el DEM.
+    // Solo dibuja agua donde el fondo está por debajo del nivel actual y crea
+    // una transición suave en la orilla. Así el lago realmente se contrae y
+    // se expande durante la animación sin cruzarse visualmente con el terreno.
+    aguaMaterial.onBeforeCompile = shader => {
+        shader.uniforms.uHeightMap = { value: texturaAlturaDEM };
+        shader.uniforms.uHeightTexSize = { value: altura.size };
+        shader.uniforms.uTerrainSize = { value: new THREE.Vector2(anchoTerreno, altoTerreno) };
+        shader.uniforms.uHeightRangeZ = { value: (elevMax - elevMin) * EXAGERACION_VERTICAL };
+        shader.uniforms.uWaterLevelZ = { value: Number.isFinite(aguaMaterial.userData.nivelActual) ? aguaMaterial.userData.nivelActual : elevacionAZ(COTA_LAGO) };
+        aguaMaterial.userData.shader = shader;
+
+        shader.vertexShader = shader.vertexShader.replace(
+            "void main() {",
+            `uniform vec2 uTerrainSize;
+             varying vec2 vTerrainUv;
+             void main() {
+                 vTerrainUv = vec2(position.x / uTerrainSize.x + 0.5,
+                                   position.y / uTerrainSize.y + 0.5);`
+        );
+
+        shader.fragmentShader = shader.fragmentShader.replace(
+            "void main() {",
+            `uniform sampler2D uHeightMap;
+             uniform vec2 uHeightTexSize;
+             uniform float uHeightRangeZ;
+             uniform float uWaterLevelZ;
+             varying vec2 vTerrainUv;
+
+             float decodeHeight16(vec4 c) {
+                 float hi = floor(c.r * 255.0 + 0.5);
+                 float lo = floor(c.g * 255.0 + 0.5);
+                 return (hi * 256.0 + lo) / 65535.0;
+             }
+
+             float sampleHeightSmooth(vec2 uv) {
+                 vec2 texSize = uHeightTexSize;
+                 vec2 p = clamp(uv, vec2(0.0), vec2(1.0)) * texSize - 0.5;
+                 vec2 b = floor(p);
+                 vec2 f = fract(p);
+                 vec2 uv00 = (b + vec2(0.5, 0.5)) / texSize;
+                 vec2 uv10 = (b + vec2(1.5, 0.5)) / texSize;
+                 vec2 uv01 = (b + vec2(0.5, 1.5)) / texSize;
+                 vec2 uv11 = (b + vec2(1.5, 1.5)) / texSize;
+                 float h00 = decodeHeight16(texture2D(uHeightMap, clamp(uv00, vec2(0.0), vec2(1.0))));
+                 float h10 = decodeHeight16(texture2D(uHeightMap, clamp(uv10, vec2(0.0), vec2(1.0))));
+                 float h01 = decodeHeight16(texture2D(uHeightMap, clamp(uv01, vec2(0.0), vec2(1.0))));
+                 float h11 = decodeHeight16(texture2D(uHeightMap, clamp(uv11, vec2(0.0), vec2(1.0))));
+                 return mix(mix(h00, h10, f.x), mix(h01, h11, f.x), f.y);
+             }
+
+             void main() {`
+        );
+
+        shader.fragmentShader = shader.fragmentShader.replace(
+            "#include <clipping_planes_fragment>",
+            `#include <clipping_planes_fragment>
+             float terrainZ = sampleHeightSmooth(vTerrainUv) * uHeightRangeZ;
+             float waterDepth = uWaterLevelZ - terrainZ;
+             float shoreAlpha = smoothstep(2.0, 15.0, waterDepth);
+             if (shoreAlpha <= 0.006) discard;
+             diffuseColor.a *= shoreAlpha;`
+        );
+    };
+    aguaMaterial.customProgramCacheKey = () => "atitlan-water-bathymetry-v4";
+
+    nivelAguaOriginal = elevacionAZ(COTA_LAGO);
+    nivelAguaFinal = altura.minLagoZ - MARGEN_VACIADO_METROS * EXAGERACION_VERTICAL;
 
     for (const feature of geojson.features || []) {
         if (!feature.geometry) continue;
@@ -885,6 +1148,8 @@ async function cargarLago() {
             aguaGrupo.add(mesh);
         }
     }
+
+    fijarNivelAgua(nivelAguaOriginal);
     return geojson;
 }
 
@@ -939,36 +1204,36 @@ function animarAgua(vaciar) {
     teclaActiva = null;
     const token = ++lakeAnimToken;
     cerrarInfo(false);
+    mostrarGaleriaRocas(false);
     marcarBoton("8");
 
     const inicio = performance.now();
-    const opacidadInicial = aguaMaterial.opacity;
-    const zInicial = aguaGrupo.position.z;
+    const nivelInicial = Number.isFinite(aguaMaterial.userData.nivelActual)
+        ? aguaMaterial.userData.nivelActual
+        : (vaciar ? nivelAguaOriginal : nivelAguaFinal);
+    const nivelFinal = vaciar ? nivelAguaFinal : nivelAguaOriginal;
     const mixInicial = lechoMix;
-
-    const opacidadFinal = vaciar ? 0 : 0.78;
-    const zFinal = vaciar
-        ? nivelAguaOriginal - DESPLAZAMIENTO_VISUAL_AGUA
-        : nivelAguaOriginal;
     const mixFinal = vaciar ? 1 : 0;
 
-    if (!vaciar) aguaGrupo.visible = true;
-    estado.textContent = vaciar ? "Revelando el lecho del lago…" : "Restaurando el lago…";
+    // Al llenar desde seco, la lámina comienza por debajo del punto más profundo.
+    // El shader la irá haciendo visible primero en las depresiones profundas y
+    // luego hacia las orillas conforme asciende.
+    aguaGrupo.visible = true;
+    aguaMaterial.opacity = 0.80;
 
     function frame(ahora) {
         if (token !== lakeAnimToken) return;
         const t = Math.min((ahora - inicio) / DURACION_AGUA, 1);
         const s = easingAgua(t);
+        const nivel = THREE.MathUtils.lerp(nivelInicial, nivelFinal, s);
 
-        // El agua desaparece un poco más rápido que la transición del lecho,
-        // evitando ver dos estados compitiendo durante la animación.
-        const sAgua = vaciar
-            ? easingAgua(Math.min(1, t / 0.78))
-            : easingAgua(Math.max(0, (t - 0.10) / 0.90));
-
-        aguaMaterial.opacity = THREE.MathUtils.lerp(opacidadInicial, opacidadFinal, sAgua);
-        aguaGrupo.position.z = THREE.MathUtils.lerp(zInicial, zFinal, s);
+        fijarNivelAgua(nivel);
         setLechoMix(THREE.MathUtils.lerp(mixInicial, mixFinal, s));
+
+        const progreso = Math.round(s * 100);
+        estado.textContent = vaciar
+            ? `Vaciando lago · ${progreso}%`
+            : `Llenando lago · ${progreso}%`;
 
         if (t < 1) {
             requestAnimationFrame(frame);
@@ -977,9 +1242,11 @@ function animarAgua(vaciar) {
 
         lagoVacio = vaciar;
         objetivoLagoVacio = vaciar;
-        aguaMaterial.opacity = opacidadFinal;
-        aguaGrupo.position.z = zFinal;
+        fijarNivelAgua(nivelFinal);
         setLechoMix(mixFinal);
+
+        // Al final del vaciado todos los fragmentos ya están descartados por
+        // estar por debajo del fondo mínimo. Ocultamos la malla solo entonces.
         if (vaciar) aguaGrupo.visible = false;
 
         marcarBoton("8");
@@ -1229,6 +1496,12 @@ function marcarBoton(tecla = null) {
     }
 }
 
+function mostrarGaleriaRocas(mostrar) {
+    const visible = Boolean(mostrar);
+    rockGallery.classList.toggle("is-visible", visible);
+    rockGallery.setAttribute("aria-hidden", visible ? "false" : "true");
+}
+
 /* ============================================================
    FICHA FUERA DEL MODELO + CALLOUT
 ============================================================ */
@@ -1252,6 +1525,7 @@ function cerrarInfo(limpiarSeleccion = true) {
     infoRail.dataset.callout = "0";
     puntoCallout3D = null;
     ocultarCallout();
+    mostrarGaleriaRocas(false);
 
     if (limpiarSeleccion) {
         teclaActiva = null;
@@ -1320,26 +1594,34 @@ function actualizarCallout() {
 ============================================================ */
 function calcularCamaraFrontal(datos, local, z) {
     const ejeMayor = datos.ejePrincipal.clone().normalize();
-    let direccionVista = new THREE.Vector2(-ejeMayor.y, ejeMayor.x).normalize();
 
-    // Elegimos el lado exterior de la cuenca para reducir la posibilidad
-    // de que otro relieve quede delante de la unidad seleccionada.
-    let radial = new THREE.Vector2(local.x, local.y);
-    if (radial.lengthSq() < 1) {
-        radial.set(camera.position.x - local.x, camera.position.y - local.y);
-    }
-    if (radial.lengthSq() < 1) radial.set(0, -1);
-    radial.normalize();
-    if (direccionVista.dot(radial) < 0) direccionVista.multiplyScalar(-1);
+    // Una vista verdaderamente "de frente" se consigue mirando de forma
+    // aproximadamente perpendicular al eje largo de la unidad.
+    let normalUnidad = new THREE.Vector2(-ejeMayor.y, ejeMayor.x).normalize();
+
+    // Elegimos la normal situada DEL LADO DEL LAGO / INTERIOR DE LA CUENCA.
+    // Esto reproduce la lectura de tu captura: la cámara se coloca sobre la
+    // depresión del lago y mira hacia las paredes/unidades de la cuenca.
+    let haciaLago = centroLagoLocal.clone().sub(local);
+    if (haciaLago.lengthSq() < 1) haciaLago = new THREE.Vector2(-local.x, -local.y);
+    if (haciaLago.lengthSq() < 1) haciaLago.set(0, -1);
+    haciaLago.normalize();
+    if (normalUnidad.dot(haciaLago) < 0) normalUnidad.multiplyScalar(-1);
+
+    // Conserva el encuadre frontal de la unidad, pero lo orienta ligeramente
+    // hacia el centro del lago para que el relieve no quede visto "por detrás".
+    const direccionVista = normalUnidad.multiplyScalar(0.74)
+        .add(haciaLago.multiplyScalar(0.26))
+        .normalize();
 
     const diagonal = Math.hypot(datos.ancho, datos.alto);
-    const extension = Math.max(diagonal, 2800);
-    const distancia = THREE.MathUtils.clamp(extension * 1.35, 6200, 25500);
+    const extension = Math.max(diagonal, 2600);
+    const distancia = THREE.MathUtils.clamp(extension * 1.28, 5900, 23500);
 
-    // Vista oblicua suficientemente baja para leer el frente del relieve,
-    // sin convertir la escena en una vista casi cenital.
-    const horizontal = distancia * 0.96;
-    const vertical = distancia * 0.68;
+    // Ángulo bajo-oblicuo (aprox. 23–27°), más parecido a una vista frontal
+    // de corte/afloramiento que a una vista cenital.
+    const horizontal = distancia * 1.02;
+    const vertical = THREE.MathUtils.clamp(distancia * 0.43, 2300, 9200);
 
     const destinoPos = new THREE.Vector3(
         local.x + direccionVista.x * horizontal,
@@ -1350,11 +1632,12 @@ function calcularCamaraFrontal(datos, local, z) {
     const destinoTarget = new THREE.Vector3(
         local.x,
         local.y,
-        z + Math.min(220, Math.max(100, extension * 0.025))
+        z + THREE.MathUtils.clamp(extension * 0.018, 90, 210)
     );
 
     return { destinoPos, destinoTarget };
 }
+
 
 /* ============================================================
    ESCENA GEOLÓGICA
@@ -1386,6 +1669,7 @@ function activarEscena(tecla) {
     puntoCallout3D = new THREE.Vector3(local.x, local.y, z + 145);
     teclaActiva = tecla;
     marcarBoton(tecla);
+    mostrarGaleriaRocas(tecla === "4");
 
     const { destinoPos, destinoTarget } = calcularCamaraFrontal(datos, local, z);
     animarCamara(destinoPos, destinoTarget);
@@ -1434,6 +1718,7 @@ controls.addEventListener("start", () => {
    FLORA / FAUNA PLACEHOLDER
 ============================================================ */
 function mostrarPlaceholder(titulo) {
+    mostrarGaleriaRocas(false);
     puntoCallout3D = null;
     teclaActiva = null;
     const tecla = titulo === "Flora" ? "9" : "0";
