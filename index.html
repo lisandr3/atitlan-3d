@@ -2,14 +2,18 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cuenca del Lago de Atitlán - Visor 3D</title>
 <style>
 :root {
-    --rail-w: clamp(360px, 29vw, 430px);
-    --panel-bg: rgba(16, 26, 31, 0.76);
-    --ink: #172027;
-    --accent: #294d5d;
+    --rail-w: clamp(360px, 30vw, 460px);
+    --navy: #0f3d5e;
+    --navy-2: #174f74;
+    --ink: #111820;
+    --muted: #55646d;
+    --paper: #f7f9fa;
+    --line: rgba(15, 61, 94, 0.16);
+    --dock-h: 74px;
 }
 
 * { box-sizing: border-box; }
@@ -19,13 +23,14 @@ html, body {
     height: 100%;
     overflow: hidden;
     background: #b9ced3;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
 }
-body { color: var(--ink); }
+button { font: inherit; }
 
 /* =========================================================
-   ÁREA DEL MODELO
-   La ficha queda FUERA de esta área cuando está abierta.
+   MODELO 3D
 ========================================================= */
 #stage {
     position: fixed;
@@ -33,81 +38,125 @@ body { color: var(--ink); }
     right: 0;
     overflow: hidden;
     background: #b9ced3;
-    transition: right 320ms ease;
+    transition: right 360ms cubic-bezier(.2,.75,.25,1), bottom 360ms cubic-bezier(.2,.75,.25,1);
 }
+body.info-open #stage { right: var(--rail-w); }
 
-body.info-open #stage {
-    right: var(--rail-w);
-}
-
-#visor {
-    position: absolute;
-    inset: 0;
-}
-
+#visor { position: absolute; inset: 0; }
 #visor canvas {
     display: block;
     width: 100%;
     height: 100%;
+    touch-action: none;
 }
 
 /* =========================================================
-   PANEL GENERAL
+   TÍTULO GENERAL — SIN RECUADRO
 ========================================================= */
-#panel {
+#mainHeader {
     position: absolute;
     top: 14px;
-    left: 14px;
-    z-index: 40;
-    color: white;
-    background: var(--panel-bg);
-    padding: 13px 17px;
-    border-radius: 12px;
-    backdrop-filter: blur(8px);
-    min-width: 278px;
-    box-shadow: 0 7px 22px rgba(0,0,0,0.20);
+    left: 50%;
+    z-index: 45;
+    width: min(920px, calc(100% - 36px));
+    transform: translateX(-50%);
+    text-align: center;
     pointer-events: none;
+    text-shadow: 0 1px 0 rgba(255,255,255,.72), 0 2px 12px rgba(255,255,255,.45);
 }
-
-#panel h2 {
-    margin: 0 0 5px 0;
-    font-size: 20px;
-    font-weight: 700;
+#mainHeader h1 {
+    margin: 0;
+    color: var(--navy);
+    font-size: clamp(22px, 2.2vw, 34px);
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -.025em;
 }
-
 #estado {
-    font-size: 13px;
-    line-height: 1.35;
-}
-
-#ayuda {
-    margin-top: 8px;
-    font-size: 11px;
-    line-height: 1.5;
-    opacity: .86;
-}
-
-/* =========================================================
-   CONTROLES
-========================================================= */
-#controles {
-    position: absolute;
-    right: 18px;
-    bottom: 18px;
-    z-index: 40;
-    color: white;
-    background: var(--panel-bg);
-    padding: 12px 15px;
-    border-radius: 10px;
+    margin-top: 7px;
+    color: #36596d;
     font-size: 12px;
-    line-height: 1.62;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 7px 22px rgba(0,0,0,0.16);
-    pointer-events: none;
+    font-weight: 650;
+    opacity: .9;
 }
 
 /* =========================================================
-   FICHA LATERAL: NO CUBRE EL MODELO
+   DOCK DE 10 ESCENAS — TECLADO + TÁCTIL
+========================================================= */
+#sceneDock {
+    position: fixed;
+    left: 50%;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    z-index: 90;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 10px;
+    border: 1px solid rgba(255,255,255,.30);
+    border-radius: 999px;
+    background: rgba(13, 39, 54, .78);
+    box-shadow: 0 10px 30px rgba(0,0,0,.20);
+    backdrop-filter: blur(12px) saturate(125%);
+    -webkit-backdrop-filter: blur(12px) saturate(125%);
+    transition: bottom 360ms cubic-bezier(.2,.75,.25,1), left 360ms cubic-bezier(.2,.75,.25,1);
+}
+.scene-key {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.26);
+    border-radius: 50%;
+    background: rgba(255,255,255,.10);
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 140ms ease, background 180ms ease, color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.scene-key:hover { transform: translateY(-2px); background: rgba(255,255,255,.18); }
+.scene-key:active { transform: scale(.94); }
+.scene-key.is-active {
+    background: #ffffff;
+    color: var(--navy);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255,255,255,.13), 0 6px 14px rgba(0,0,0,.22);
+}
+.scene-key[data-key="8"].is-active {
+    background: #bde8f7;
+    border-color: #dff6ff;
+    color: #0b4c70;
+}
+.scene-key::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    transform: translateX(-50%) translateY(4px);
+    white-space: nowrap;
+    padding: 6px 8px;
+    border-radius: 7px;
+    background: rgba(10,27,37,.92);
+    color: white;
+    font-size: 11px;
+    font-weight: 650;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease, transform 150ms ease;
+}
+.scene-key:hover::after,
+.scene-key:focus-visible::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.scene-key:focus-visible { outline: 3px solid rgba(255,255,255,.65); outline-offset: 2px; }
+body.info-open #sceneDock {
+    left: calc((100vw - var(--rail-w)) / 2);
+}
+
+/* =========================================================
+   FICHA LATERAL LIMPIA — SIN TARJETA SOBRE TARJETA
 ========================================================= */
 #infoRail {
     position: fixed;
@@ -116,104 +165,88 @@ body.info-open #stage {
     bottom: 0;
     width: var(--rail-w);
     z-index: 70;
-    padding: 18px;
-    background: rgba(231, 238, 240, 0.98);
-    border-left: 1px solid rgba(32, 55, 65, 0.15);
-    box-shadow: -10px 0 30px rgba(20, 35, 42, 0.16);
+    padding: 26px 28px 92px;
+    background: rgba(248, 250, 251, .985);
+    border-left: 1px solid var(--line);
+    box-shadow: -14px 0 38px rgba(15, 42, 57, .13);
     transform: translateX(100%);
-    transition: transform 320ms ease;
+    transition: transform 360ms cubic-bezier(.2,.75,.25,1);
     overflow: hidden;
 }
-
-body.info-open #infoRail {
-    transform: translateX(0);
-}
+body.info-open #infoRail { transform: translateX(0); }
 
 #infoCard {
     position: relative;
     height: 100%;
     overflow-y: auto;
-    background: rgba(255,255,255,.97);
-    border-radius: 16px;
-    padding: 22px 22px 24px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.14);
+    overscroll-behavior: contain;
+    padding: 6px 4px 28px;
+    scrollbar-width: thin;
 }
-
 #cerrarInfo {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 34px;
-    height: 34px;
-    border: 0;
+    position: sticky;
+    top: 0;
+    float: right;
+    z-index: 3;
+    width: 38px;
+    height: 38px;
+    margin: 0 0 4px 10px;
+    border: 1px solid rgba(15,61,94,.15);
     border-radius: 50%;
-    background: #e8edef;
-    color: #233740;
-    font-size: 21px;
+    background: rgba(255,255,255,.90);
+    color: #16384b;
+    font-size: 22px;
     line-height: 34px;
     cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,.08);
 }
-
-#cerrarInfo:hover { background: #dbe4e7; }
-
+#cerrarInfo:hover { background: #eef4f7; }
+#infoCodigoWrap { text-align: center; clear: both; }
 #infoCodigo {
     display: inline-block;
-    padding: 5px 9px;
-    margin: 1px 42px 8px 0;
-    border-radius: 6px;
-    background: #253b46;
-    color: white;
+    min-width: 44px;
+    padding: 5px 11px;
+    margin: 5px auto 10px;
+    border-radius: 999px;
+    background: var(--navy);
+    color: #fff;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: .03em;
 }
-
 #infoTitulo {
-    margin: 0 36px 14px 0;
-    color: #172027;
-    font-size: 24px;
-    line-height: 1.13;
+    margin: 0 auto 24px;
+    max-width: 390px;
+    color: #0d1117;
+    font-size: clamp(22px, 2vw, 28px);
+    line-height: 1.12;
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: -.015em;
 }
-
 .info-section {
-    margin-top: 17px;
-    padding-top: 15px;
-    border-top: 1px solid #dce4e7;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #dce4e8;
 }
-
-.info-section:first-of-type {
-    margin-top: 8px;
-}
-
+.info-section:first-of-type { margin-top: 0; }
 .info-section h4 {
-    margin: 0 0 7px;
-    color: #294d5d;
-    font-size: 13px;
-    letter-spacing: .02em;
-    text-transform: uppercase;
+    margin: 0 0 10px;
+    color: #111820;
+    font-size: 15px;
+    line-height: 1.25;
+    text-align: center;
+    font-weight: 800;
 }
-
 .info-section p {
     margin: 0;
-    color: #34434a;
+    color: #27343c;
     font-size: 14px;
-    line-height: 1.62;
+    line-height: 1.68;
     text-align: justify;
+    text-wrap: pretty;
 }
-
-#infoLitologia {
-    background: #eef3f4;
-    border-radius: 9px;
-    padding: 11px 12px;
-    color: #33444c;
-    font-size: 13px;
-    line-height: 1.48;
-}
-
-#infoFuente {
-    font-size: 12px;
-    line-height: 1.5;
-    color: #66757b;
-}
+#infoGeologia { white-space: pre-line; }
 
 /* =========================================================
    CALLOUT 3D -> FICHA
@@ -223,111 +256,141 @@ body.info-open #infoRail {
     inset: 0;
     width: 100%;
     height: 100%;
-    z-index: 60;
+    z-index: 65;
     pointer-events: none;
     overflow: visible;
 }
-
 #calloutLine {
     fill: none;
-    stroke: rgba(36, 61, 73, .92);
-    stroke-width: 2.2;
+    stroke: rgba(15, 61, 94, .86);
+    stroke-width: 2.1;
     stroke-linecap: round;
     stroke-linejoin: round;
-    filter: drop-shadow(0 1px 2px rgba(255,255,255,.75));
+    stroke-dasharray: 1 0;
+    filter: drop-shadow(0 1px 1px rgba(255,255,255,.9));
 }
-
 #calloutHalo {
-    fill: rgba(255,255,255,.96);
-    stroke: rgba(36, 61, 73, .94);
-    stroke-width: 3;
+    fill: rgba(255,255,255,.97);
+    stroke: rgba(15,61,94,.95);
+    stroke-width: 2.6;
 }
-
-#calloutCore {
-    fill: #294d5d;
-}
+#calloutCore { fill: var(--navy); }
 
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE / TELÉFONO
 ========================================================= */
 @media (max-width: 900px) {
     :root { --rail-w: 100vw; }
-    body.info-open #stage { right: 0; bottom: 46vh; }
+    #mainHeader { top: 10px; width: calc(100% - 28px); }
+    #mainHeader h1 { font-size: clamp(18px, 5.2vw, 25px); }
+    #estado { margin-top: 4px; font-size: 10.5px; }
+
+    body.info-open #stage {
+        right: 0;
+        bottom: 50dvh;
+    }
     #infoRail {
         top: auto;
+        left: 0;
+        right: 0;
         width: 100vw;
-        height: 46vh;
-        padding: 10px;
-        transform: translateY(100%);
+        height: 50dvh;
+        padding: 14px 18px 22px;
         border-left: 0;
-        border-top: 1px solid rgba(32,55,65,.15);
+        border-top: 1px solid var(--line);
+        border-radius: 20px 20px 0 0;
+        transform: translateY(100%);
+        box-shadow: 0 -14px 32px rgba(15,42,57,.16);
     }
     body.info-open #infoRail { transform: translateY(0); }
-    #infoCard { padding: 18px; }
-    #infoTitulo { font-size: 20px; }
-    #controles { font-size: 11px; }
+    #infoCard { padding: 2px 2px 18px; }
+    #infoTitulo { font-size: 20px; margin-bottom: 16px; padding: 0 26px; }
+    .info-section { margin-top: 15px; padding-top: 14px; }
+    .info-section h4 { font-size: 14px; }
+    .info-section p { font-size: 13.5px; line-height: 1.58; text-align: left; }
+
+    #sceneDock {
+        left: 50%;
+        width: min(360px, calc(100vw - 18px));
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 7px 9px;
+        padding: 9px 12px;
+        border-radius: 24px;
+    }
+    .scene-key {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        justify-self: center;
+        font-size: 13px;
+    }
+    .scene-key::after { display: none; }
+    body.info-open #sceneDock { left: 50%; bottom: calc(50dvh + 10px); }
+}
+
+@media (max-width: 430px) {
+    #sceneDock { width: calc(100vw - 12px); gap: 6px; padding: 8px 10px; }
+    .scene-key { width: 44px; height: 44px; min-width: 44px; }
+    body.info-open #sceneDock { bottom: calc(50dvh + 6px); }
+}
+
+@media (max-height: 650px) and (max-width: 900px) {
+    body.info-open #stage { bottom: 56dvh; }
+    #infoRail { height: 56dvh; }
+    body.info-open #sceneDock { bottom: calc(56dvh + 6px); }
 }
 </style>
+
 </head>
 <body>
 
 <div id="stage">
     <div id="visor"></div>
 
-    <div id="panel">
-        <h2>Cuenca del Lago de Atitlán</h2>
-        <div id="estado">Cargando DEM...</div>
-        <div id="ayuda">
-            Arrastrar: rotar · rueda: zoom<br>
-            Clic derecho: desplazar · Esc: ocultar ficha
-        </div>
-    </div>
-
-    <div id="controles">
-        <b>1–7</b> · Escenas geológicas<br>
-        <b>8</b> · Lago / lecho<br>
-        <b>9</b> · Flora<br>
-        <b>0</b> · Fauna
-    </div>
+    <header id="mainHeader">
+        <h1>Geología, Fauna y Flora de la Cuenca del Lago de Atitlán</h1>
+        <div id="estado">Cargando modelo 3D…</div>
+    </header>
 </div>
 
 <aside id="infoRail" aria-hidden="true">
     <div id="infoCard">
         <button id="cerrarInfo" type="button" aria-label="Cerrar ficha">×</button>
-        <div id="infoCodigo"></div>
-        <h3 id="infoTitulo"></h3>
+        <div id="infoCodigoWrap"><div id="infoCodigo"></div></div>
+        <h2 id="infoTitulo"></h2>
 
-        <div class="info-section">
-            <h4>Qué representa</h4>
-            <p id="infoResumen"></p>
-        </div>
+        <section class="info-section">
+            <h4 id="infoSeccion1Titulo">Descripción geológica</h4>
+            <p id="infoGeologia"></p>
+        </section>
 
-        <div class="info-section">
-            <h4>Litología cartografiada</h4>
-            <div id="infoLitologia"></div>
-        </div>
-
-        <div class="info-section" id="seccionDescripcion">
-            <h4>Descripción del mapa</h4>
-            <p id="infoDescripcion"></p>
-        </div>
-
-        <div class="info-section">
-            <h4>Implicaciones edafológicas y para la vegetación</h4>
+        <section class="info-section">
+            <h4 id="infoSeccion2Titulo">Suelos y vegetación</h4>
             <p id="infoEdafologia"></p>
-        </div>
-
-        <div class="info-section">
-            <p id="infoFuente">Interpretación divulgativa apoyada en los atributos del GeoJSON; las implicaciones edafológicas son generales y pueden variar localmente con pendiente, drenaje, clima, uso del suelo y grado de meteorización.</p>
-        </div>
+        </section>
     </div>
 </aside>
 
+<nav id="sceneDock" aria-label="Escenas del visor">
+    <button class="scene-key" type="button" data-key="1" data-label="Geología · Qpa4" aria-label="Escena 1, geología Qpa4">1</button>
+    <button class="scene-key" type="button" data-key="2" data-label="Geología · Qpf3" aria-label="Escena 2, geología Qpf3">2</button>
+    <button class="scene-key" type="button" data-key="3" data-label="Geología · Tmt4" aria-label="Escena 3, geología Tmt4">3</button>
+    <button class="scene-key" type="button" data-key="4" data-label="Geología · Tcf2" aria-label="Escena 4, geología Tcf2">4</button>
+    <button class="scene-key" type="button" data-key="5" data-label="Geología · QTa" aria-label="Escena 5, geología QTa">5</button>
+    <button class="scene-key" type="button" data-key="6" data-label="Geología · Qa" aria-label="Escena 6, geología Qa">6</button>
+    <button class="scene-key" type="button" data-key="7" data-label="Geología · Tg" aria-label="Escena 7, geología Tg">7</button>
+    <button class="scene-key" type="button" data-key="8" data-label="Lago / lecho" aria-label="Escena 8, vaciar o llenar lago">8</button>
+    <button class="scene-key" type="button" data-key="9" data-label="Flora" aria-label="Escena 9, flora">9</button>
+    <button class="scene-key" type="button" data-key="0" data-label="Fauna" aria-label="Escena 0, fauna">0</button>
+</nav>
+
 <svg id="calloutSvg" aria-hidden="true">
     <polyline id="calloutLine" points=""></polyline>
-    <circle id="calloutHalo" cx="0" cy="0" r="7"></circle>
-    <circle id="calloutCore" cx="0" cy="0" r="3.3"></circle>
+    <circle id="calloutHalo" cx="0" cy="0" r="6.5"></circle>
+    <circle id="calloutCore" cx="0" cy="0" r="3"></circle>
 </svg>
+
 
 <script type="importmap">
 {
@@ -357,8 +420,9 @@ const EXAGERACION_VERTICAL = 2.0;
 const COLUMNAS = 450;
 const TEXTURA_RES = 2048;
 const COTA_LAGO = 1562;
-const PROFUNDIDAD_VACIADO = 800;
+const DESPLAZAMIENTO_VISUAL_AGUA = 55;
 const OFFSET_AGUA = 14;
+const DURACION_AGUA = 1800;
 
 /* ============================================================
    ESCENAS GEOLÓGICAS
@@ -413,14 +477,14 @@ const infoRail = document.getElementById("infoRail");
 const infoCard = document.getElementById("infoCard");
 const infoCodigo = document.getElementById("infoCodigo");
 const infoTitulo = document.getElementById("infoTitulo");
-const infoResumen = document.getElementById("infoResumen");
-const infoLitologia = document.getElementById("infoLitologia");
-const infoDescripcion = document.getElementById("infoDescripcion");
+const infoGeologia = document.getElementById("infoGeologia");
 const infoEdafologia = document.getElementById("infoEdafologia");
-const seccionDescripcion = document.getElementById("seccionDescripcion");
+const infoSeccion1Titulo = document.getElementById("infoSeccion1Titulo");
+const infoSeccion2Titulo = document.getElementById("infoSeccion2Titulo");
 const calloutLine = document.getElementById("calloutLine");
 const calloutHalo = document.getElementById("calloutHalo");
 const calloutCore = document.getElementById("calloutCore");
+const sceneButtons = [...document.querySelectorAll(".scene-key")];
 
 /* ============================================================
    THREE
@@ -431,8 +495,9 @@ scene.background = new THREE.Color(0xb9ced3);
 const camera = new THREE.PerspectiveCamera(42, 1, 1, 250000);
 camera.up.set(0, 0, 1);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const esMovil = window.matchMedia("(max-width: 900px)").matches;
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, esMovil ? 1.5 : 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 visor.appendChild(renderer.domElement);
 
@@ -441,6 +506,11 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.07;
 controls.maxPolarAngle = Math.PI * 0.49;
 controls.enablePan = true;
+controls.rotateSpeed = esMovil ? 0.72 : 1.0;
+controls.zoomSpeed = esMovil ? 0.85 : 1.0;
+controls.panSpeed = esMovil ? 0.75 : 1.0;
+controls.touches.ONE = THREE.TOUCH.ROTATE;
+controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x48515a, 1.8));
 const sol = new THREE.DirectionalLight(0xffffff, 2.15);
@@ -453,10 +523,13 @@ scene.add(sol);
 let demRaster, demWidth, demHeight, demNoData;
 let bbox, centroX, centroY, anchoTerreno, altoTerreno;
 let elevMin = Infinity, elevMax = -Infinity;
-let terreno, materialBase, materialGeologia, materialLecho;
+let terreno, materialBase, materialGeologia;
 let texturaGeologia, texturaLecho;
-let aguaGrupo, nivelAguaOriginal;
-let lagoVacio = false, animandoAgua = false;
+let aguaGrupo, aguaMaterial, nivelAguaOriginal;
+let lagoVacio = false;
+let objetivoLagoVacio = false;
+let lakeAnimToken = 0;
+let lechoMix = 0;
 let geologiaGeoJSON;
 let puntoCallout3D = null;
 let teclaActiva = null;
@@ -670,7 +743,7 @@ function pintarPoligono(ctx, poligono, canvas, color) {
 }
 
 async function cargarGeologia() {
-    estado.textContent = "Preparando geología...";
+    estado.textContent = "Preparando geología…";
     const [responseGeo, estilo] = await Promise.all([fetch(RUTA_GEOLOGIA), leerQML()]);
     if (!responseGeo.ok) throw new Error("No se pudo cargar geologia.geojson");
     geologiaGeoJSON = await responseGeo.json();
@@ -703,14 +776,51 @@ async function cargarGeologia() {
     texturaGeologia.colorSpace = THREE.SRGBColorSpace;
     texturaGeologia.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
+    // Se prepara la segunda textura antes de crear el material. De esa forma
+    // el paso geología -> lecho ocurre dentro del MISMO material y la MISMA
+    // malla del DEM, evitando parpadeos entre superficies coincidentes.
+    texturaLecho = await crearTexturaLecho(canvas);
+
     materialGeologia = new THREE.MeshStandardMaterial({
         map: texturaGeologia,
-        roughness: 0.9,
+        roughness: 0.92,
+        metalness: 0,
         side: THREE.DoubleSide
     });
-    terreno.material = materialGeologia;
 
-    await crearTexturaLecho(canvas);
+    materialGeologia.userData.lechoMix = 0;
+    materialGeologia.onBeforeCompile = shader => {
+        shader.uniforms.lechoMap = { value: texturaLecho };
+        shader.uniforms.uLechoMix = { value: materialGeologia.userData.lechoMix || 0 };
+        materialGeologia.userData.shader = shader;
+
+        shader.fragmentShader = shader.fragmentShader.replace(
+            "#include <map_pars_fragment>",
+            `#include <map_pars_fragment>\nuniform sampler2D lechoMap;\nuniform float uLechoMix;`
+        );
+
+        shader.fragmentShader = shader.fragmentShader.replace(
+            "#include <map_fragment>",
+            `#ifdef USE_MAP
+                vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+                vec4 sampledLechoColor = texture2D( lechoMap, vMapUv );
+                sampledDiffuseColor = mix( sampledDiffuseColor, sampledLechoColor, uLechoMix );
+                diffuseColor *= sampledDiffuseColor;
+            #endif`
+        );
+    };
+    materialGeologia.customProgramCacheKey = () => "atitlan-terreno-lecho-blend-v2";
+
+    terreno.material = materialGeologia;
+}
+
+function setLechoMix(valor) {
+    lechoMix = THREE.MathUtils.clamp(valor, 0, 1);
+    if (!materialGeologia) return;
+    materialGeologia.userData.lechoMix = lechoMix;
+    if (materialGeologia.userData.shader?.uniforms?.uLechoMix) {
+        materialGeologia.userData.shader.uniforms.uLechoMix.value = lechoMix;
+    }
 }
 
 /* ============================================================
@@ -734,7 +844,7 @@ function crearShapeLago(poligono) {
 }
 
 async function cargarLago() {
-    estado.textContent = "Preparando lago...";
+    estado.textContent = "Preparando lago…";
     const response = await fetch(RUTA_LAGO);
     if (!response.ok) throw new Error("No se pudo cargar lago2.geojson");
     const geojson = await response.json();
@@ -742,19 +852,21 @@ async function cargarLago() {
     aguaGrupo = new THREE.Group();
     scene.add(aguaGrupo);
 
-    const material = new THREE.MeshPhysicalMaterial({
-        color: 0x1686b3,
+    aguaMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x187fa8,
         transparent: true,
-        opacity: 0.82,
-        roughness: 0.12,
-        metalness: 0.04,
-        transmission: 0.07,
+        opacity: 0.78,
+        roughness: 0.24,
+        metalness: 0.02,
+        clearcoat: 0.28,
+        clearcoatRoughness: 0.34,
         side: THREE.DoubleSide,
         depthWrite: false,
         depthTest: true,
         polygonOffset: true,
-        polygonOffsetFactor: -6,
-        polygonOffsetUnits: -6
+        polygonOffsetFactor: -7,
+        polygonOffsetUnits: -7,
+        alphaToCoverage: true
     });
 
     nivelAguaOriginal = elevacionAZ(COTA_LAGO) + OFFSET_AGUA;
@@ -768,7 +880,7 @@ async function cargarLago() {
 
         for (const poligono of poligonos) {
             const geometry = new THREE.ShapeGeometry(crearShapeLago(poligono));
-            const mesh = new THREE.Mesh(geometry, material);
+            const mesh = new THREE.Mesh(geometry, aguaMaterial);
             mesh.renderOrder = 10;
             aguaGrupo.add(mesh);
         }
@@ -778,8 +890,7 @@ async function cargarLago() {
 
 /* ============================================================
    TEXTURA DEL LECHO
-   Se mantiene la geología fuera del lago y un gris claro dentro.
-   La geometría real del DEM aporta el sombreado del relieve.
+   Fuera del lago conserva la geología; dentro queda gris claro.
 ============================================================ */
 async function crearTexturaLecho(canvasGeologia) {
     const response = await fetch(RUTA_LAGO);
@@ -797,60 +908,87 @@ async function crearTexturaLecho(canvasGeologia) {
         let poligonos = [];
         if (feature.geometry.type === "Polygon") poligonos = [feature.geometry.coordinates];
         else if (feature.geometry.type === "MultiPolygon") poligonos = feature.geometry.coordinates;
-        for (const poligono of poligonos) pintarPoligono(ctx, poligono, canvas, "rgb(235,237,237)");
+        for (const poligono of poligonos) pintarPoligono(ctx, poligono, canvas, "rgb(236,238,239)");
     }
 
-    texturaLecho = new THREE.CanvasTexture(canvas);
-    texturaLecho.colorSpace = THREE.SRGBColorSpace;
-    texturaLecho.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return tex;
+}
 
-    materialLecho = new THREE.MeshStandardMaterial({
-        map: texturaLecho,
-        roughness: 0.99,
-        metalness: 0,
-        side: THREE.DoubleSide
-    });
+/* ============================================================
+   VACIADO / LLENADO SUAVE
+
+   Ya no se hace bajar la lámina cientos de metros atravesando el DEM.
+   Esa intersección era la causa principal del borde pixelado/parpadeante.
+   Ahora la transición combina:
+   1) desvanecimiento suave del agua,
+   2) un descenso visual muy pequeño,
+   3) mezcla progresiva de la textura geológica con el lecho.
+============================================================ */
+function easingAgua(t) {
+    // Quintic smoothstep: velocidad cero al principio y al final.
+    return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
 function animarAgua(vaciar) {
-    if (!aguaGrupo || animandoAgua) return;
-    animandoAgua = true;
+    if (!aguaGrupo || !aguaMaterial || !materialGeologia) return;
 
-    cerrarInfo();
+    objetivoLagoVacio = vaciar;
+    teclaActiva = null;
+    const token = ++lakeAnimToken;
+    cerrarInfo(false);
+    marcarBoton("8");
+
     const inicio = performance.now();
+    const opacidadInicial = aguaMaterial.opacity;
     const zInicial = aguaGrupo.position.z;
+    const mixInicial = lechoMix;
+
+    const opacidadFinal = vaciar ? 0 : 0.78;
     const zFinal = vaciar
-        ? nivelAguaOriginal - PROFUNDIDAD_VACIADO * EXAGERACION_VERTICAL
+        ? nivelAguaOriginal - DESPLAZAMIENTO_VISUAL_AGUA
         : nivelAguaOriginal;
+    const mixFinal = vaciar ? 1 : 0;
 
-    if (vaciar && materialLecho) terreno.material = materialLecho;
-    estado.textContent = vaciar ? "Descendiendo nivel del lago..." : "Recuperando nivel del lago...";
-
-    aguaGrupo.traverse(o => {
-        if (o.isMesh) o.userData.opacityInicio = o.material.opacity;
-    });
+    if (!vaciar) aguaGrupo.visible = true;
+    estado.textContent = vaciar ? "Revelando el lecho del lago…" : "Restaurando el lago…";
 
     function frame(ahora) {
-        const t = Math.min((ahora - inicio) / 2600, 1);
-        const suave = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        aguaGrupo.position.z = THREE.MathUtils.lerp(zInicial, zFinal, suave);
+        if (token !== lakeAnimToken) return;
+        const t = Math.min((ahora - inicio) / DURACION_AGUA, 1);
+        const s = easingAgua(t);
 
-        aguaGrupo.traverse(o => {
-            if (!o.isMesh) return;
-            const op0 = o.userData.opacityInicio ?? (vaciar ? 0.82 : 0.03);
-            o.material.opacity = THREE.MathUtils.lerp(op0, vaciar ? 0.02 : 0.82, suave);
-        });
+        // El agua desaparece un poco más rápido que la transición del lecho,
+        // evitando ver dos estados compitiendo durante la animación.
+        const sAgua = vaciar
+            ? easingAgua(Math.min(1, t / 0.78))
+            : easingAgua(Math.max(0, (t - 0.10) / 0.90));
 
-        if (t < 1) requestAnimationFrame(frame);
-        else {
-            lagoVacio = vaciar;
-            animandoAgua = false;
-            if (!vaciar) terreno.material = materialGeologia;
-            estado.textContent = lagoVacio ? "Lecho del lago visible" : "Lago de Atitlán";
+        aguaMaterial.opacity = THREE.MathUtils.lerp(opacidadInicial, opacidadFinal, sAgua);
+        aguaGrupo.position.z = THREE.MathUtils.lerp(zInicial, zFinal, s);
+        setLechoMix(THREE.MathUtils.lerp(mixInicial, mixFinal, s));
+
+        if (t < 1) {
+            requestAnimationFrame(frame);
+            return;
         }
+
+        lagoVacio = vaciar;
+        objetivoLagoVacio = vaciar;
+        aguaMaterial.opacity = opacidadFinal;
+        aguaGrupo.position.z = zFinal;
+        setLechoMix(mixFinal);
+        if (vaciar) aguaGrupo.visible = false;
+
+        marcarBoton("8");
+        estado.textContent = vaciar ? "Lecho del lago visible" : "Lago de Atitlán";
     }
+
     requestAnimationFrame(frame);
 }
+
 
 /* ============================================================
    GEOMETRÍA: AGRUPAR TODOS LOS FEATURES DE UNA UNIDAD
@@ -978,6 +1116,30 @@ function puntoInteriorRepresentativo(poligono) {
     return poligono[0][0];
 }
 
+function ejePrincipalPoligono(poligono) {
+    const ring = poligono?.[0] || [];
+    if (ring.length < 3) return new THREE.Vector2(1, 0);
+
+    let mx = 0, my = 0;
+    for (const p of ring) { mx += p[0]; my += p[1]; }
+    mx /= ring.length;
+    my /= ring.length;
+
+    let sxx = 0, syy = 0, sxy = 0;
+    for (const p of ring) {
+        const dx = p[0] - mx;
+        const dy = p[1] - my;
+        sxx += dx * dx;
+        syy += dy * dy;
+        sxy += dx * dy;
+    }
+
+    const angulo = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+    const eje = new THREE.Vector2(Math.cos(angulo), Math.sin(angulo));
+    if (eje.lengthSq() < 1e-9) eje.set(1, 0);
+    return eje.normalize();
+}
+
 function datosUnidad(features) {
     const poligonos = [];
     for (const f of features) poligonos.push(...poligonosDeFeature(f));
@@ -992,7 +1154,15 @@ function datosUnidad(features) {
 
     const bb = bboxPoligono(principal);
     const punto = puntoInteriorRepresentativo(principal);
-    return { ...bb, x: punto[0], y: punto[1], poligonoPrincipal: principal };
+    const ejePrincipal = ejePrincipalPoligono(principal);
+    return {
+        ...bb,
+        x: punto[0],
+        y: punto[1],
+        areaPrincipal,
+        poligonoPrincipal: principal,
+        ejePrincipal
+    };
 }
 
 /* ============================================================
@@ -1024,28 +1194,51 @@ function descripcionUnidad(features) {
     return vals.slice(0, 3).join(" ");
 }
 
-function litologiaUnidad(features) {
-    const vals = valoresUnicos(features, ["Litología_", "Litologia_", "Litología", "Litologia", "LITOLOGIA"]);
-    return vals.length ? vals.slice(0, 3).join(" · ") : "Sin descripción litológica disponible en los campos esperados del GeoJSON.";
+function normalizarTexto(s) {
+    return String(s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9ñ]+/g, " ")
+        .trim();
+}
+
+function textosMuyParecidos(a, b) {
+    const A = new Set(normalizarTexto(a).split(/\s+/).filter(w => w.length > 4));
+    const B = new Set(normalizarTexto(b).split(/\s+/).filter(w => w.length > 4));
+    if (!A.size || !B.size) return false;
+    let comunes = 0;
+    for (const w of A) if (B.has(w)) comunes++;
+    return comunes / Math.min(A.size, B.size) > 0.62;
+}
+
+function textoGeologicoUnidad(config, features) {
+    const base = config.resumen.trim();
+    const mapa = descripcionUnidad(features).trim();
+    if (!mapa) return base;
+    if (textosMuyParecidos(base, mapa)) return base.length >= mapa.length ? base : mapa;
+    return `${base}\n\n${mapa}`;
+}
+
+/* ============================================================
+   MENÚ DE ESCENAS
+============================================================ */
+function marcarBoton(tecla = null) {
+    for (const btn of sceneButtons) {
+        btn.classList.toggle("is-active", tecla !== null && btn.dataset.key === String(tecla));
+    }
 }
 
 /* ============================================================
    FICHA FUERA DEL MODELO + CALLOUT
 ============================================================ */
-function abrirInfo({ codigo, titulo, resumen, litologia, descripcion, edafologia, conCallout = true }) {
+function abrirInfo({ codigo, titulo, geologia, edafologia, conCallout = true, seccion1 = "Descripción geológica", seccion2 = "Suelos y vegetación" }) {
     infoCodigo.textContent = codigo;
     infoTitulo.textContent = titulo;
-    infoResumen.textContent = resumen;
-    infoLitologia.textContent = litologia;
+    infoGeologia.textContent = geologia;
     infoEdafologia.textContent = edafologia;
-
-    if (descripcion) {
-        infoDescripcion.textContent = descripcion;
-        seccionDescripcion.style.display = "block";
-    } else {
-        infoDescripcion.textContent = "";
-        seccionDescripcion.style.display = "none";
-    }
+    infoSeccion1Titulo.textContent = seccion1;
+    infoSeccion2Titulo.textContent = seccion2;
 
     document.body.classList.add("info-open");
     infoRail.setAttribute("aria-hidden", "false");
@@ -1053,16 +1246,20 @@ function abrirInfo({ codigo, titulo, resumen, litologia, descripcion, edafologia
     infoCard.scrollTop = 0;
 }
 
-function cerrarInfo() {
+function cerrarInfo(limpiarSeleccion = true) {
     document.body.classList.remove("info-open");
     infoRail.setAttribute("aria-hidden", "true");
     infoRail.dataset.callout = "0";
-    teclaActiva = null;
     puntoCallout3D = null;
     ocultarCallout();
+
+    if (limpiarSeleccion) {
+        teclaActiva = null;
+        marcarBoton(null);
+    }
 }
 
-document.getElementById("cerrarInfo").addEventListener("click", cerrarInfo);
+document.getElementById("cerrarInfo").addEventListener("click", () => cerrarInfo(true));
 
 function ocultarCallout() {
     calloutLine.style.display = "none";
@@ -1083,7 +1280,7 @@ function actualizarCallout() {
     }
 
     const ndc = puntoCallout3D.clone().project(camera);
-    if (ndc.z < -1 || ndc.z > 1 || Math.abs(ndc.x) > 1.25 || Math.abs(ndc.y) > 1.25) {
+    if (ndc.z < -1 || ndc.z > 1 || Math.abs(ndc.x) > 1.3 || Math.abs(ndc.y) > 1.3) {
         ocultarCallout();
         return;
     }
@@ -1091,18 +1288,72 @@ function actualizarCallout() {
     const canvasRect = renderer.domElement.getBoundingClientRect();
     const x = canvasRect.left + (ndc.x * 0.5 + 0.5) * canvasRect.width;
     const y = canvasRect.top + (-ndc.y * 0.5 + 0.5) * canvasRect.height;
-
+    const railRect = infoRail.getBoundingClientRect();
     const cardRect = infoCard.getBoundingClientRect();
-    const endX = cardRect.left;
-    const endY = THREE.MathUtils.clamp(y, cardRect.top + 72, cardRect.bottom - 72);
-    const elbowX = Math.max(x + 26, endX - 34);
+    const movil = window.matchMedia("(max-width: 900px)").matches;
 
-    calloutLine.setAttribute("points", `${x},${y} ${elbowX},${y} ${endX},${endY}`);
+    let points;
+    if (movil) {
+        const endY = railRect.top;
+        const endX = THREE.MathUtils.clamp(x, cardRect.left + 34, cardRect.right - 34);
+        const elbowY = y + (endY - y) * 0.55;
+        points = `${x},${y} ${x},${elbowY} ${endX},${endY}`;
+    } else {
+        const endX = railRect.left;
+        const endY = THREE.MathUtils.clamp(y, cardRect.top + 70, cardRect.bottom - 70);
+        const elbowX = Math.max(x + 28, endX - 36);
+        points = `${x},${y} ${elbowX},${y} ${endX},${endY}`;
+    }
+
+    calloutLine.setAttribute("points", points);
     calloutHalo.setAttribute("cx", x);
     calloutHalo.setAttribute("cy", y);
     calloutCore.setAttribute("cx", x);
     calloutCore.setAttribute("cy", y);
     mostrarCallout();
+}
+
+/* ============================================================
+   CÁMARA FRONTAL AUTOMÁTICA
+   El eje largo de la unidad queda aproximadamente horizontal en
+   pantalla y la cámara se coloca perpendicular a ese eje.
+============================================================ */
+function calcularCamaraFrontal(datos, local, z) {
+    const ejeMayor = datos.ejePrincipal.clone().normalize();
+    let direccionVista = new THREE.Vector2(-ejeMayor.y, ejeMayor.x).normalize();
+
+    // Elegimos el lado exterior de la cuenca para reducir la posibilidad
+    // de que otro relieve quede delante de la unidad seleccionada.
+    let radial = new THREE.Vector2(local.x, local.y);
+    if (radial.lengthSq() < 1) {
+        radial.set(camera.position.x - local.x, camera.position.y - local.y);
+    }
+    if (radial.lengthSq() < 1) radial.set(0, -1);
+    radial.normalize();
+    if (direccionVista.dot(radial) < 0) direccionVista.multiplyScalar(-1);
+
+    const diagonal = Math.hypot(datos.ancho, datos.alto);
+    const extension = Math.max(diagonal, 2800);
+    const distancia = THREE.MathUtils.clamp(extension * 1.35, 6200, 25500);
+
+    // Vista oblicua suficientemente baja para leer el frente del relieve,
+    // sin convertir la escena en una vista casi cenital.
+    const horizontal = distancia * 0.96;
+    const vertical = distancia * 0.68;
+
+    const destinoPos = new THREE.Vector3(
+        local.x + direccionVista.x * horizontal,
+        local.y + direccionVista.y * horizontal,
+        z + vertical
+    );
+
+    const destinoTarget = new THREE.Vector3(
+        local.x,
+        local.y,
+        z + Math.min(220, Math.max(100, extension * 0.025))
+    );
+
+    return { destinoPos, destinoTarget };
 }
 
 /* ============================================================
@@ -1113,7 +1364,7 @@ function activarEscena(tecla) {
     if (!config || !geologiaGeoJSON) return;
 
     if (teclaActiva === tecla && document.body.classList.contains("info-open")) {
-        cerrarInfo();
+        cerrarInfo(true);
         return;
     }
 
@@ -1132,40 +1383,25 @@ function activarEscena(tecla) {
         : (elevMax - elevMin) * EXAGERACION_VERTICAL * 0.25;
 
     const local = gtmALocal(datos.x, datos.y);
-    puntoCallout3D = new THREE.Vector3(local.x, local.y, z + 140);
+    puntoCallout3D = new THREE.Vector3(local.x, local.y, z + 145);
     teclaActiva = tecla;
+    marcarBoton(tecla);
 
-    const extension = Math.max(datos.ancho, datos.alto, 2500);
-    const distancia = THREE.MathUtils.clamp(extension * 1.65, 6500, 23000);
-
-    // La cámara se coloca hacia el exterior de la cuenca respecto del punto,
-    // mirando a la unidad y conservando contexto del relieve circundante.
-    let radial = new THREE.Vector2(local.x, local.y);
-    if (radial.lengthSq() < 1) radial.set(0.7, -0.8);
-    radial.normalize();
-
-    const destinoCamara = new THREE.Vector3(
-        local.x + radial.x * distancia * 0.72,
-        local.y + radial.y * distancia * 0.72,
-        z + distancia * 0.64
-    );
-
-    const destinoObjetivo = new THREE.Vector3(local.x, local.y, z + 190);
-    animarCamara(destinoCamara, destinoObjetivo);
+    const { destinoPos, destinoTarget } = calcularCamaraFrontal(datos, local, z);
+    animarCamara(destinoPos, destinoTarget);
 
     const titulo = tituloUnidad(features, config.simbolo);
     abrirInfo({
         codigo: config.simbolo,
         titulo,
-        resumen: config.resumen,
-        litologia: litologiaUnidad(features),
-        descripcion: descripcionUnidad(features),
+        geologia: textoGeologicoUnidad(config, features),
         edafologia: config.edafologia,
         conCallout: true
     });
 
     estado.textContent = `${config.simbolo} · ${titulo}`;
 }
+
 
 /* ============================================================
    CÁMARA SUAVE, REINICIABLE
@@ -1200,38 +1436,37 @@ controls.addEventListener("start", () => {
 function mostrarPlaceholder(titulo) {
     puntoCallout3D = null;
     teclaActiva = null;
+    const tecla = titulo === "Flora" ? "9" : "0";
+    marcarBoton(tecla);
+
     abrirInfo({
-        codigo: titulo === "Flora" ? "9" : "0",
+        codigo: tecla,
         titulo,
-        resumen: `Módulo reservado para integrar el contenido de ${titulo.toLowerCase()} de la Cuenca del Lago de Atitlán.`,
-        litologia: "Esta sección no utiliza información litológica.",
-        descripcion: "",
+        geologia: titulo === "Flora"
+            ? "Esta escena queda reservada para integrar la flora representativa de la Cuenca del Lago de Atitlán, con fotografías, distribución espacial y relaciones con altitud, humedad, exposición y sustrato."
+            : "Esta escena queda reservada para integrar la fauna representativa de la Cuenca del Lago de Atitlán, con fotografías, hábitats, distribución espacial y vínculos con la cobertura vegetal y los ambientes acuáticos.",
         edafologia: titulo === "Flora"
-            ? "Aquí podrán incorporarse especies representativas, asociaciones vegetales, pisos altitudinales, fotografías y relaciones entre vegetación, humedad, suelos y sustrato geológico."
-            : "Aquí podrán incorporarse especies representativas, hábitats, fotografías y relaciones entre fauna, cobertura vegetal, agua, relieve y conectividad ecológica.",
+            ? "La versión final podrá relacionar especies y comunidades vegetales con la disponibilidad de agua, profundidad del suelo, material parental y condiciones microclimáticas."
+            : "La versión final podrá mostrar asociaciones entre fauna, vegetación, relieve, corredores ecológicos, cuerpos de agua y zonas de refugio o alimentación.",
+        seccion1: titulo === "Flora" ? "Flora de la cuenca" : "Fauna de la cuenca",
+        seccion2: "Próxima integración",
         conCallout: false
     });
+
     estado.textContent = `${titulo} · módulo pendiente`;
 }
 
 /* ============================================================
-   TECLADO
+   TECLADO + BOTONES TÁCTILES
 ============================================================ */
-window.addEventListener("keydown", e => {
-    const tecla = e.key;
-
-    if (tecla === "Escape") {
-        cerrarInfo();
-        return;
-    }
-
+function ejecutarEscena(tecla) {
     if (ESCENAS[tecla]) {
         activarEscena(tecla);
         return;
     }
 
     if (tecla === "8") {
-        animarAgua(!lagoVacio);
+        animarAgua(!objetivoLagoVacio);
         return;
     }
 
@@ -1243,7 +1478,27 @@ window.addEventListener("keydown", e => {
     if (tecla === "0") {
         mostrarPlaceholder("Fauna");
     }
+}
+
+window.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+        cerrarInfo(true);
+        return;
+    }
+
+    if (/^[0-9]$/.test(e.key)) {
+        ejecutarEscena(e.key);
+    }
 });
+
+for (const btn of sceneButtons) {
+    btn.addEventListener("pointerdown", e => e.stopPropagation());
+    btn.addEventListener("click", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        ejecutarEscena(btn.dataset.key);
+    });
+}
 
 /* ============================================================
    RESIZE
