@@ -47,11 +47,10 @@
 
 <div id="titulo">
   <h2>Cuenca del Lago de Atitlán</h2>
-  <div id="estado">Cargando DEM...</div>
+  <div id="estado">Cargando modelo 3D...</div>
 </div>
 
 <div id="visor"></div>
-
 
 <script type="importmap">
 {
@@ -62,54 +61,33 @@
 }
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
-
 <script type="module">
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { fromUrl } from "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm";
-
-
-// --------------------------------------------------
-// ELEMENTOS HTML
-// --------------------------------------------------
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 const contenedor = document.getElementById("visor");
 const estado = document.getElementById("estado");
 
 
-// --------------------------------------------------
 // ESCENA
-// --------------------------------------------------
-
 const scene = new THREE.Scene();
-
 scene.background = new THREE.Color(0xbfd8e8);
 
 
-// --------------------------------------------------
 // CÁMARA
-// --------------------------------------------------
-
 const camera = new THREE.PerspectiveCamera(
   45,
   window.innerWidth / window.innerHeight,
-  1,
-  200000
+  0.1,
+  1000000
 );
 
-camera.position.set(
-  0,
-  -30000,
-  22000
-);
+camera.position.set(0, -30000, 18000);
 
 
-// --------------------------------------------------
-// RENDER
-// --------------------------------------------------
-
+// RENDERER
 const renderer = new THREE.WebGLRenderer({
   antialias: true
 });
@@ -123,656 +101,139 @@ renderer.setPixelRatio(
   Math.min(window.devicePixelRatio, 2)
 );
 
-contenedor.appendChild(
-  renderer.domElement
-);
+contenedor.appendChild(renderer.domElement);
 
 
-// --------------------------------------------------
 // CONTROLES
-// --------------------------------------------------
-
 const controls = new OrbitControls(
   camera,
   renderer.domElement
 );
 
 controls.enableDamping = true;
-
 controls.dampingFactor = 0.05;
 
-controls.target.set(
-  0,
-  0,
-  0
-);
 
-
-// --------------------------------------------------
-// ILUMINACIÓN
-// --------------------------------------------------
-
-const luzAmbiente =
+// LUCES
+scene.add(
   new THREE.AmbientLight(
     0xffffff,
-    1.4
-  );
-
-scene.add(
-  luzAmbiente
+    1.8
+  )
 );
 
-
-const sol =
-  new THREE.DirectionalLight(
-    0xffffff,
-    2.2
-  );
+const sol = new THREE.DirectionalLight(
+  0xffffff,
+  2.2
+);
 
 sol.position.set(
-  -15000,
-  -10000,
-  30000
+  -20000,
+  -20000,
+  40000
 );
 
-scene.add(
-  sol
+scene.add(sol);
+
+
+// CARGAR GLTF
+const loader = new GLTFLoader();
+
+loader.load(
+  "data/MODELO5.gltf",
+
+  function(gltf) {
+
+    const modelo = gltf.scene;
+
+    scene.add(modelo);
+
+
+    // Calcular tamaño del modelo
+    const box = new THREE.Box3().setFromObject(modelo);
+
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+
+    box.getSize(size);
+    box.getCenter(center);
+
+
+    console.log("Tamaño modelo:", size);
+    console.log("Centro modelo:", center);
+
+
+    // Centrar modelo
+    modelo.position.x -= center.x;
+    modelo.position.y -= center.y;
+    modelo.position.z -= center.z;
+
+
+    // Recalcular bbox después de centrar
+    const maxDim = Math.max(
+      size.x,
+      size.y,
+      size.z
+    );
+
+
+    // Cámara automática
+    camera.position.set(
+      0,
+      -maxDim * 1.2,
+      maxDim * 0.7
+    );
+
+
+    controls.target.set(
+      0,
+      0,
+      0
+    );
+
+    controls.update();
+
+
+    estado.innerText =
+      "Modelo 3D cargado";
+
+  },
+
+  function(xhr) {
+
+    if (xhr.total) {
+
+      const porcentaje =
+        Math.round(
+          xhr.loaded /
+          xhr.total *
+          100
+        );
+
+      estado.innerText =
+        "Cargando modelo: " +
+        porcentaje +
+        "%";
+
+    }
+
+  },
+
+  function(error) {
+
+    console.error(
+      "Error cargando GLTF:",
+      error
+    );
+
+    estado.innerText =
+      "ERROR cargando MODELO5.gltf";
+
+  }
 );
 
 
-// --------------------------------------------------
-// PROYECCIÓN GTM
-// --------------------------------------------------
-
-proj4.defs(
-  "GTM",
-  "+proj=tmerc +lat_0=0 +lon_0=-90.5 +k=0.9998 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs"
-);
-
-
-// --------------------------------------------------
-// CARGAR DEM
-// --------------------------------------------------
-
-async function cargarDEM() {
-
-  estado.innerText =
-    "Descargando DEM...";
-
-  console.log(
-    "Intentando cargar DEM..."
-  );
-
-
-  const tiff = await fromUrl(
-    "data/DEM_unificado.tif"
-  );
-
-
-  estado.innerText =
-    "Leyendo DEM...";
-
-
-  const image =
-    await tiff.getImage();
-
-
-  console.log(
-    "DEM abierto correctamente"
-  );
-
-
-  const bbox =
-    image.getBoundingBox();
-
-
-  console.log(
-    "BBOX:",
-    bbox
-  );
-
-
-  const widthOriginal =
-    image.getWidth();
-
-  const heightOriginal =
-    image.getHeight();
-
-
-  console.log(
-    "Tamaño raster:",
-    widthOriginal,
-    heightOriginal
-  );
-
-
-  const raster =
-    await image.readRasters({
-      interleave: true
-    });
-
-
-  estado.innerText =
-    "Construyendo terreno 3D...";
-
-
-  // --------------------------------------------------
-  // RESOLUCIÓN DEL MODELO 3D
-  // --------------------------------------------------
-
-  const columnas = 300;
-
-  const filas =
-    Math.round(
-      columnas *
-      heightOriginal /
-      widthOriginal
-    );
-
-
-  const anchoTerreno =
-    bbox[2] - bbox[0];
-
-  const altoTerreno =
-    bbox[3] - bbox[1];
-
-
-  // --------------------------------------------------
-  // GEOMETRÍA
-  // --------------------------------------------------
-
-  const geometry =
-    new THREE.PlaneGeometry(
-      anchoTerreno,
-      altoTerreno,
-      columnas - 1,
-      filas - 1
-    );
-
-
-  const posiciones =
-    geometry.attributes.position;
-
-
-  // --------------------------------------------------
-  // CALCULAR MÍNIMO Y MÁXIMO
-  // --------------------------------------------------
-
-  let elevMin = Infinity;
-  let elevMax = -Infinity;
-
-
-  for (
-    let i = 0;
-    i < posiciones.count;
-    i++
-  ) {
-
-    const col =
-      i % columnas;
-
-    const fila =
-      Math.floor(
-        i / columnas
-      );
-
-
-    const pixelX =
-      Math.floor(
-        col /
-        (columnas - 1) *
-        (widthOriginal - 1)
-      );
-
-
-    const pixelY =
-      Math.floor(
-        fila /
-        (filas - 1) *
-        (heightOriginal - 1)
-      );
-
-
-    const indice =
-      pixelY *
-      widthOriginal +
-      pixelX;
-
-
-    const z =
-      raster[indice];
-
-
-    if (
-      Number.isFinite(z) &&
-      z > 0 &&
-      z < 10000
-    ) {
-
-      elevMin =
-        Math.min(
-          elevMin,
-          z
-        );
-
-      elevMax =
-        Math.max(
-          elevMax,
-          z
-        );
-
-    }
-
-  }
-
-
-  console.log(
-    "Elevación mínima:",
-    elevMin
-  );
-
-  console.log(
-    "Elevación máxima:",
-    elevMax
-  );
-
-
-  // --------------------------------------------------
-  // EXAGERACIÓN VERTICAL
-  // --------------------------------------------------
-
-  const exageracionVertical = 2.0;
-
-
-  // --------------------------------------------------
-  // ASIGNAR ELEVACIONES
-  // --------------------------------------------------
-
-  for (
-    let i = 0;
-    i < posiciones.count;
-    i++
-  ) {
-
-    const col =
-      i % columnas;
-
-    const fila =
-      Math.floor(
-        i / columnas
-      );
-
-
-    const pixelX =
-      Math.floor(
-        col /
-        (columnas - 1) *
-        (widthOriginal - 1)
-      );
-
-
-    const pixelY =
-      Math.floor(
-        fila /
-        (filas - 1) *
-        (heightOriginal - 1)
-      );
-
-
-    const indice =
-      pixelY *
-      widthOriginal +
-      pixelX;
-
-
-    let z =
-      raster[indice];
-
-
-    if (
-      !Number.isFinite(z) ||
-      z <= 0 ||
-      z > 10000
-    ) {
-
-      posiciones.setZ(
-        i,
-        -500
-      );
-
-    }
-
-    else {
-
-      posiciones.setZ(
-        i,
-        (
-          z -
-          elevMin
-        ) *
-        exageracionVertical
-      );
-
-    }
-
-  }
-
-
-  geometry.computeVertexNormals();
-
-
-  // --------------------------------------------------
-  // MATERIAL DEL TERRENO
-  // --------------------------------------------------
-
-  const material =
-    new THREE.MeshStandardMaterial({
-
-      color: 0x6f845d,
-
-      roughness: 0.95,
-
-      metalness: 0,
-
-      side:
-        THREE.DoubleSide
-
-    });
-
-
-  const terreno =
-    new THREE.Mesh(
-      geometry,
-      material
-    );
-
-
-  scene.add(
-    terreno
-  );
-
-
-  // --------------------------------------------------
-  // GUARDAR INFORMACIÓN DEL DEM
-  // --------------------------------------------------
-
-  window.demInfo = {
-
-    bbox,
-
-    elevMin,
-
-    elevMax,
-
-    anchoTerreno,
-
-    altoTerreno,
-
-    exageracionVertical
-
-  };
-
-
-  console.log(
-    "Terreno creado"
-  );
-
-
-  estado.innerText =
-    "DEM cargado · cargando lago...";
-
-
-  await cargarLago();
-
-
-  estado.innerText =
-    "Visor 3D listo";
-
-}
-
-
-// --------------------------------------------------
-// CARGAR GEOJSON DEL LAGO
-// --------------------------------------------------
-
-async function cargarLago() {
-
-  const response =
-    await fetch(
-      "data/lago_ajustado_dem.geojson"
-    );
-
-
-  if (!response.ok) {
-
-    throw new Error(
-      "No se pudo cargar el GeoJSON del lago"
-    );
-
-  }
-
-
-  const geojson =
-    await response.json();
-
-
-  console.log(
-    "GeoJSON cargado:",
-    geojson
-  );
-
-
-  const {
-    bbox,
-    elevMin,
-    exageracionVertical
-  } =
-    window.demInfo;
-
-
-  const centroX =
-    (
-      bbox[0] +
-      bbox[2]
-    ) / 2;
-
-
-  const centroY =
-    (
-      bbox[1] +
-      bbox[3]
-    ) / 2;
-
-
-  function convertirCoordenada(
-    coord
-  ) {
-
-    const lon =
-      coord[0];
-
-    const lat =
-      coord[1];
-
-
-    const proyectada =
-      proj4(
-        "EPSG:4326",
-        "GTM",
-        [
-          lon,
-          lat
-        ]
-      );
-
-
-    return new THREE.Vector2(
-
-      proyectada[0] -
-      centroX,
-
-      proyectada[1] -
-      centroY
-
-    );
-
-  }
-
-
-  for (
-    const feature
-    of geojson.features
-  ) {
-
-    let poligonos = [];
-
-
-    if (
-      feature.geometry.type ===
-      "Polygon"
-    ) {
-
-      poligonos = [
-        feature.geometry.coordinates
-      ];
-
-    }
-
-
-    else if (
-      feature.geometry.type ===
-      "MultiPolygon"
-    ) {
-
-      poligonos =
-        feature.geometry.coordinates;
-
-    }
-
-
-    else {
-
-      continue;
-
-    }
-
-
-    for (
-      const poligono
-      of poligonos
-    ) {
-
-      const exterior =
-        poligono[0].map(
-          convertirCoordenada
-        );
-
-
-      const shape =
-        new THREE.Shape(
-          exterior
-        );
-
-
-      if (
-        poligono.length > 1
-      ) {
-
-        for (
-          let h = 1;
-          h < poligono.length;
-          h++
-        ) {
-
-          const hueco =
-            poligono[h].map(
-              convertirCoordenada
-            );
-
-
-          const path =
-            new THREE.Path(
-              hueco
-            );
-
-
-          shape.holes.push(
-            path
-          );
-
-        }
-
-      }
-
-
-      const geometry =
-        new THREE.ShapeGeometry(
-          shape
-        );
-
-
-      const material =
-        new THREE.MeshStandardMaterial({
-
-          color: 0x157fad,
-
-          transparent: true,
-
-          opacity: 0.88,
-
-          roughness: 0.3,
-
-          metalness: 0.05,
-
-          side:
-            THREE.DoubleSide
-
-        });
-
-
-      const lago =
-        new THREE.Mesh(
-          geometry,
-          material
-        );
-
-
-      // Lago Atitlán:
-      // aproximación inicial.
-      // Luego lo afinaremos.
-
-      const nivelLago = 1560;
-
-
-      lago.position.z =
-        (
-          nivelLago -
-          elevMin
-        ) *
-        exageracionVertical +
-        5;
-
-
-      scene.add(
-        lago
-      );
-
-    }
-
-  }
-
-
-  console.log(
-    "Lago creado"
-  );
-
-}
-
-
-// --------------------------------------------------
 // REDIMENSIONAR
-// --------------------------------------------------
-
 window.addEventListener(
   "resize",
   () => {
@@ -783,7 +244,6 @@ window.addEventListener(
 
     camera.updateProjectionMatrix();
 
-
     renderer.setSize(
       window.innerWidth,
       window.innerHeight
@@ -793,19 +253,12 @@ window.addEventListener(
 );
 
 
-// --------------------------------------------------
 // ANIMACIÓN
-// --------------------------------------------------
-
 function animate() {
 
-  requestAnimationFrame(
-    animate
-  );
-
+  requestAnimationFrame(animate);
 
   controls.update();
-
 
   renderer.render(
     scene,
@@ -814,30 +267,7 @@ function animate() {
 
 }
 
-
 animate();
-
-
-// --------------------------------------------------
-// EJECUTAR
-// --------------------------------------------------
-
-cargarDEM()
-  .catch(
-    error => {
-
-      console.error(
-        "ERROR:",
-        error
-      );
-
-
-      estado.innerText =
-        "ERROR: " +
-        error.message;
-
-    }
-  );
 
 </script>
 
