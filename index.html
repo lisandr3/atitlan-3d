@@ -52,6 +52,7 @@
 
 <div id="visor"></div>
 
+
 <script type="importmap">
 {
   "imports": {
@@ -61,13 +62,18 @@
 }
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
 
 <script type="module">
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { fromUrl } from "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm";
+
+
+// --------------------------------------------------
+// ELEMENTOS HTML
+// --------------------------------------------------
 
 const contenedor = document.getElementById("visor");
 const estado = document.getElementById("estado");
@@ -93,7 +99,11 @@ const camera = new THREE.PerspectiveCamera(
   200000
 );
 
-camera.position.set(0, -28000, 20000);
+camera.position.set(
+  0,
+  -30000,
+  22000
+);
 
 
 // --------------------------------------------------
@@ -104,38 +114,74 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true
 });
 
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
 
-contenedor.appendChild(renderer.domElement);
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio, 2)
+);
+
+contenedor.appendChild(
+  renderer.domElement
+);
 
 
 // --------------------------------------------------
 // CONTROLES
 // --------------------------------------------------
 
-const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(
+  camera,
+  renderer.domElement
+);
 
 controls.enableDamping = true;
 
-controls.target.set(0, 0, 0);
+controls.dampingFactor = 0.05;
+
+controls.target.set(
+  0,
+  0,
+  0
+);
 
 
 // --------------------------------------------------
 // ILUMINACIÓN
 // --------------------------------------------------
 
-scene.add(new THREE.AmbientLight(0xffffff, 1.6));
+const luzAmbiente =
+  new THREE.AmbientLight(
+    0xffffff,
+    1.4
+  );
 
-const sol = new THREE.DirectionalLight(0xffffff, 2);
+scene.add(
+  luzAmbiente
+);
 
-sol.position.set(-10000, -10000, 30000);
 
-scene.add(sol);
+const sol =
+  new THREE.DirectionalLight(
+    0xffffff,
+    2.2
+  );
+
+sol.position.set(
+  -15000,
+  -10000,
+  30000
+);
+
+scene.add(
+  sol
+);
 
 
 // --------------------------------------------------
-// PROYECCIÓN GTM GUATEMALA
+// PROYECCIÓN GTM
 // --------------------------------------------------
 
 proj4.defs(
@@ -150,117 +196,249 @@ proj4.defs(
 
 async function cargarDEM() {
 
-  const tiff = await GeoTIFF.fromUrl(
+  estado.innerText =
+    "Descargando DEM...";
+
+  console.log(
+    "Intentando cargar DEM..."
+  );
+
+
+  const tiff = await fromUrl(
     "data/DEM_unificado.tif"
   );
 
-  const image = await tiff.getImage();
 
-  const bbox = image.getBoundingBox();
-
-  const raster = await image.readRasters({
-    interleave: true
-  });
-
-  const widthOriginal = image.getWidth();
-  const heightOriginal = image.getHeight();
+  estado.innerText =
+    "Leyendo DEM...";
 
 
-  // Reducimos resolución para que el navegador no se sobrecargue
+  const image =
+    await tiff.getImage();
 
-  const columnas = 350;
 
-  const filas = Math.round(
-    columnas * heightOriginal / widthOriginal
+  console.log(
+    "DEM abierto correctamente"
   );
 
 
-  const anchoTerreno = bbox[2] - bbox[0];
-  const altoTerreno = bbox[3] - bbox[1];
+  const bbox =
+    image.getBoundingBox();
 
 
-  const geometry = new THREE.PlaneGeometry(
-    anchoTerreno,
-    altoTerreno,
-    columnas - 1,
-    filas - 1
+  console.log(
+    "BBOX:",
+    bbox
   );
 
 
-  const posiciones = geometry.attributes.position;
+  const widthOriginal =
+    image.getWidth();
 
+  const heightOriginal =
+    image.getHeight();
+
+
+  console.log(
+    "Tamaño raster:",
+    widthOriginal,
+    heightOriginal
+  );
+
+
+  const raster =
+    await image.readRasters({
+      interleave: true
+    });
+
+
+  estado.innerText =
+    "Construyendo terreno 3D...";
+
+
+  // --------------------------------------------------
+  // RESOLUCIÓN DEL MODELO 3D
+  // --------------------------------------------------
+
+  const columnas = 300;
+
+  const filas =
+    Math.round(
+      columnas *
+      heightOriginal /
+      widthOriginal
+    );
+
+
+  const anchoTerreno =
+    bbox[2] - bbox[0];
+
+  const altoTerreno =
+    bbox[3] - bbox[1];
+
+
+  // --------------------------------------------------
+  // GEOMETRÍA
+  // --------------------------------------------------
+
+  const geometry =
+    new THREE.PlaneGeometry(
+      anchoTerreno,
+      altoTerreno,
+      columnas - 1,
+      filas - 1
+    );
+
+
+  const posiciones =
+    geometry.attributes.position;
+
+
+  // --------------------------------------------------
+  // CALCULAR MÍNIMO Y MÁXIMO
+  // --------------------------------------------------
 
   let elevMin = Infinity;
   let elevMax = -Infinity;
 
 
-  for (let i = 0; i < posiciones.count; i++) {
+  for (
+    let i = 0;
+    i < posiciones.count;
+    i++
+  ) {
 
-    const col = i % columnas;
+    const col =
+      i % columnas;
 
-    const fila = Math.floor(i / columnas);
+    const fila =
+      Math.floor(
+        i / columnas
+      );
 
 
-    const pixelX = Math.floor(
-      col / (columnas - 1) * (widthOriginal - 1)
-    );
+    const pixelX =
+      Math.floor(
+        col /
+        (columnas - 1) *
+        (widthOriginal - 1)
+      );
 
-    const pixelY = Math.floor(
-      fila / (filas - 1) * (heightOriginal - 1)
-    );
+
+    const pixelY =
+      Math.floor(
+        fila /
+        (filas - 1) *
+        (heightOriginal - 1)
+      );
 
 
     const indice =
-      pixelY * widthOriginal + pixelX;
+      pixelY *
+      widthOriginal +
+      pixelX;
 
 
-    let z = raster[indice];
+    const z =
+      raster[indice];
 
 
-    if (!Number.isFinite(z) || z <= -9990) {
-      z = 0;
-    }
+    if (
+      Number.isFinite(z) &&
+      z > 0 &&
+      z < 10000
+    ) {
 
-    if (z > 0) {
+      elevMin =
+        Math.min(
+          elevMin,
+          z
+        );
 
-      elevMin = Math.min(elevMin, z);
-
-      elevMax = Math.max(elevMax, z);
+      elevMax =
+        Math.max(
+          elevMax,
+          z
+        );
 
     }
 
   }
 
 
+  console.log(
+    "Elevación mínima:",
+    elevMin
+  );
+
+  console.log(
+    "Elevación máxima:",
+    elevMax
+  );
+
+
+  // --------------------------------------------------
+  // EXAGERACIÓN VERTICAL
+  // --------------------------------------------------
+
   const exageracionVertical = 2.0;
 
 
-  for (let i = 0; i < posiciones.count; i++) {
+  // --------------------------------------------------
+  // ASIGNAR ELEVACIONES
+  // --------------------------------------------------
 
-    const col = i % columnas;
+  for (
+    let i = 0;
+    i < posiciones.count;
+    i++
+  ) {
 
-    const fila = Math.floor(i / columnas);
+    const col =
+      i % columnas;
+
+    const fila =
+      Math.floor(
+        i / columnas
+      );
 
 
-    const pixelX = Math.floor(
-      col / (columnas - 1) * (widthOriginal - 1)
-    );
+    const pixelX =
+      Math.floor(
+        col /
+        (columnas - 1) *
+        (widthOriginal - 1)
+      );
 
-    const pixelY = Math.floor(
-      fila / (filas - 1) * (heightOriginal - 1)
-    );
+
+    const pixelY =
+      Math.floor(
+        fila /
+        (filas - 1) *
+        (heightOriginal - 1)
+      );
 
 
     const indice =
-      pixelY * widthOriginal + pixelX;
+      pixelY *
+      widthOriginal +
+      pixelX;
 
 
-    let z = raster[indice];
+    let z =
+      raster[indice];
 
 
-    if (!Number.isFinite(z) || z <= -9990) {
+    if (
+      !Number.isFinite(z) ||
+      z <= 0 ||
+      z > 10000
+    ) {
 
-      posiciones.setZ(i, -500);
+      posiciones.setZ(
+        i,
+        -500
+      );
 
     }
 
@@ -268,7 +446,11 @@ async function cargarDEM() {
 
       posiciones.setZ(
         i,
-        (z - elevMin) * exageracionVertical
+        (
+          z -
+          elevMin
+        ) *
+        exageracionVertical
       );
 
     }
@@ -279,26 +461,35 @@ async function cargarDEM() {
   geometry.computeVertexNormals();
 
 
-  const material = new THREE.MeshStandardMaterial({
+  // --------------------------------------------------
+  // MATERIAL DEL TERRENO
+  // --------------------------------------------------
 
-    color: 0x70845a,
+  const material =
+    new THREE.MeshStandardMaterial({
 
-    roughness: 0.9,
+      color: 0x6f845d,
 
-    metalness: 0,
+      roughness: 0.95,
 
-    side: THREE.DoubleSide
+      metalness: 0,
 
-  });
+      side:
+        THREE.DoubleSide
+
+    });
 
 
-  const terreno = new THREE.Mesh(
-    geometry,
-    material
+  const terreno =
+    new THREE.Mesh(
+      geometry,
+      material
+    );
+
+
+  scene.add(
+    terreno
   );
-
-
-  scene.add(terreno);
 
 
   // --------------------------------------------------
@@ -315,9 +506,16 @@ async function cargarDEM() {
 
     anchoTerreno,
 
-    altoTerreno
+    altoTerreno,
+
+    exageracionVertical
 
   };
+
+
+  console.log(
+    "Terreno creado"
+  );
 
 
   estado.innerText =
@@ -334,60 +532,105 @@ async function cargarDEM() {
 
 
 // --------------------------------------------------
-// CARGAR LAGO
+// CARGAR GEOJSON DEL LAGO
 // --------------------------------------------------
 
 async function cargarLago() {
 
-  const response = await fetch(
-    "data/lago_ajustado_dem.geojson"
-  );
+  const response =
+    await fetch(
+      "data/lago_ajustado_dem.geojson"
+    );
 
-  const geojson = await response.json();
+
+  if (!response.ok) {
+
+    throw new Error(
+      "No se pudo cargar el GeoJSON del lago"
+    );
+
+  }
+
+
+  const geojson =
+    await response.json();
+
+
+  console.log(
+    "GeoJSON cargado:",
+    geojson
+  );
 
 
   const {
     bbox,
     elevMin,
-    anchoTerreno,
-    altoTerreno
-  } = window.demInfo;
+    exageracionVertical
+  } =
+    window.demInfo;
 
 
   const centroX =
-    (bbox[0] + bbox[2]) / 2;
+    (
+      bbox[0] +
+      bbox[2]
+    ) / 2;
+
 
   const centroY =
-    (bbox[1] + bbox[3]) / 2;
+    (
+      bbox[1] +
+      bbox[3]
+    ) / 2;
 
 
-  function convertirCoordenada(coord) {
+  function convertirCoordenada(
+    coord
+  ) {
 
-    const lon = coord[0];
-    const lat = coord[1];
+    const lon =
+      coord[0];
+
+    const lat =
+      coord[1];
 
 
     const proyectada =
-      proj4("EPSG:4326", "GTM", [lon, lat]);
+      proj4(
+        "EPSG:4326",
+        "GTM",
+        [
+          lon,
+          lat
+        ]
+      );
 
 
     return new THREE.Vector2(
 
-      proyectada[0] - centroX,
+      proyectada[0] -
+      centroX,
 
-      proyectada[1] - centroY
+      proyectada[1] -
+      centroY
 
     );
 
   }
 
 
-  for (const feature of geojson.features) {
+  for (
+    const feature
+    of geojson.features
+  ) {
 
     let poligonos = [];
 
 
-    if (feature.geometry.type === "Polygon") {
+    if (
+      feature.geometry.type ===
+      "Polygon"
+    ) {
 
       poligonos = [
         feature.geometry.coordinates
@@ -397,7 +640,8 @@ async function cargarLago() {
 
 
     else if (
-      feature.geometry.type === "MultiPolygon"
+      feature.geometry.type ===
+      "MultiPolygon"
     ) {
 
       poligonos =
@@ -406,34 +650,82 @@ async function cargarLago() {
     }
 
 
-    for (const poligono of poligonos) {
+    else {
+
+      continue;
+
+    }
+
+
+    for (
+      const poligono
+      of poligonos
+    ) {
 
       const exterior =
-        poligono[0].map(convertirCoordenada);
+        poligono[0].map(
+          convertirCoordenada
+        );
 
 
       const shape =
-        new THREE.Shape(exterior);
+        new THREE.Shape(
+          exterior
+        );
+
+
+      if (
+        poligono.length > 1
+      ) {
+
+        for (
+          let h = 1;
+          h < poligono.length;
+          h++
+        ) {
+
+          const hueco =
+            poligono[h].map(
+              convertirCoordenada
+            );
+
+
+          const path =
+            new THREE.Path(
+              hueco
+            );
+
+
+          shape.holes.push(
+            path
+          );
+
+        }
+
+      }
 
 
       const geometry =
-        new THREE.ShapeGeometry(shape);
+        new THREE.ShapeGeometry(
+          shape
+        );
 
 
       const material =
         new THREE.MeshStandardMaterial({
 
-          color: 0x1676a8,
+          color: 0x157fad,
 
           transparent: true,
 
-          opacity: 0.85,
+          opacity: 0.88,
 
-          roughness: 0.35,
+          roughness: 0.3,
 
           metalness: 0.05,
 
-          side: THREE.DoubleSide
+          side:
+            THREE.DoubleSide
 
         });
 
@@ -445,22 +737,34 @@ async function cargarLago() {
         );
 
 
-      // Nivel aproximado del lago
-      // después lo afinaremos con nuestros datos
+      // Lago Atitlán:
+      // aproximación inicial.
+      // Luego lo afinaremos.
 
-      const nivelLago =
-        (1560 - elevMin) * 2.0;
+      const nivelLago = 1560;
 
 
       lago.position.z =
-        nivelLago + 5;
+        (
+          nivelLago -
+          elevMin
+        ) *
+        exageracionVertical +
+        5;
 
 
-      scene.add(lago);
+      scene.add(
+        lago
+      );
 
     }
 
   }
+
+
+  console.log(
+    "Lago creado"
+  );
 
 }
 
@@ -479,6 +783,7 @@ window.addEventListener(
 
     camera.updateProjectionMatrix();
 
+
     renderer.setSize(
       window.innerWidth,
       window.innerHeight
@@ -494,9 +799,13 @@ window.addEventListener(
 
 function animate() {
 
-  requestAnimationFrame(animate);
+  requestAnimationFrame(
+    animate
+  );
+
 
   controls.update();
+
 
   renderer.render(
     scene,
@@ -505,21 +814,30 @@ function animate() {
 
 }
 
+
 animate();
 
 
 // --------------------------------------------------
-// INICIAR
+// EJECUTAR
 // --------------------------------------------------
 
-cargarDEM().catch(error => {
+cargarDEM()
+  .catch(
+    error => {
 
-  console.error(error);
+      console.error(
+        "ERROR:",
+        error
+      );
 
-  estado.innerText =
-    "Error cargando los datos";
 
-});
+      estado.innerText =
+        "ERROR: " +
+        error.message;
+
+    }
+  );
 
 </script>
 
