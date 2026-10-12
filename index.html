@@ -26,8 +26,10 @@
       top: 18px;
       left: 18px;
       z-index: 10;
+
       color: white;
-      background: rgba(0, 0, 0, 0.58);
+      background: rgba(0,0,0,0.58);
+
       padding: 14px 18px;
       border-radius: 10px;
     }
@@ -52,10 +54,13 @@
       right: 20px;
       bottom: 20px;
       z-index: 10;
+
       color: white;
-      background: rgba(0, 0, 0, 0.55);
+      background: rgba(0,0,0,0.55);
+
       padding: 12px 16px;
       border-radius: 8px;
+
       font-size: 14px;
     }
   </style>
@@ -65,8 +70,10 @@
 
 <div id="panel">
   <h2>Cuenca del Lago de Atitlán</h2>
-  <div id="estado">Cargando modelo 3D...</div>
-  <div id="ayuda">Arrastrar: rotar · rueda: zoom</div>
+  <div id="estado">Cargando DEM...</div>
+  <div id="ayuda">
+    Arrastrar: rotar · rueda: zoom
+  </div>
 </div>
 
 <div id="tecla8">
@@ -87,54 +94,78 @@
 <script type="module">
 
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-// --------------------------------------------------
+import {
+  OrbitControls
+} from "three/addons/controls/OrbitControls.js";
+
+import {
+  fromUrl
+} from "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm";
+
+
+// ==================================================
 // RUTAS
-// --------------------------------------------------
+// ==================================================
 
-const RUTA_MODELO = "data/MODELO5.gltf";
-const RUTA_LAGO = "data/lago2.geojson";
+const RUTA_DEM =
+  "data/DEM_unificado.tif";
 
-// --------------------------------------------------
-// EXTENSIÓN DEL DEM EN GTM
-// --------------------------------------------------
-// Si luego vemos que el lago queda desplazado,
-// ajustamos estos cuatro valores.
+const RUTA_LAGO =
+  "data/lago2.geojson";
 
-const DEM_MIN_X = 412522.0215;
-const DEM_MAX_X = 436267.0215;
 
-const DEM_MIN_Y = 1612622.4743;
-const DEM_MAX_Y = 1646342.4743;
+// ==================================================
+// CONFIGURACIÓN
+// ==================================================
 
-// --------------------------------------------------
+const EXAGERACION_VERTICAL = 2.0;
+
+// resolución web del terreno
+const COLUMNAS = 420;
+
+// altura aproximada del lago Atitlán
+const COTA_LAGO = 1562;
+
+// cuánto baja el lago
+const PROFUNDIDAD_VACIADO = 600;
+
+
+// ==================================================
 // ESCENA
-// --------------------------------------------------
+// ==================================================
 
-const scene = new THREE.Scene();
+const scene =
+  new THREE.Scene();
 
-scene.background = new THREE.Color(0xb9ced3);
+scene.background =
+  new THREE.Color(
+    0xb9ced3
+  );
 
-// --------------------------------------------------
+
+// ==================================================
 // CÁMARA
-// --------------------------------------------------
+// ==================================================
 
-const camera = new THREE.PerspectiveCamera(
-  42,
-  window.innerWidth / window.innerHeight,
-  1,
-  500000
-);
+const camera =
+  new THREE.PerspectiveCamera(
+    42,
+    window.innerWidth /
+    window.innerHeight,
+    1,
+    200000
+  );
 
-// --------------------------------------------------
+
+// ==================================================
 // RENDERER
-// --------------------------------------------------
+// ==================================================
 
-const renderer = new THREE.WebGLRenderer({
-  antialias: true
-});
+const renderer =
+  new THREE.WebGLRenderer({
+    antialias: true
+  });
 
 renderer.setSize(
   window.innerWidth,
@@ -142,252 +173,514 @@ renderer.setSize(
 );
 
 renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio, 2)
+  Math.min(
+    window.devicePixelRatio,
+    2
+  )
 );
 
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.outputColorSpace =
+  THREE.SRGBColorSpace;
 
-document.getElementById("visor")
-  .appendChild(renderer.domElement);
+document
+  .getElementById("visor")
+  .appendChild(
+    renderer.domElement
+  );
 
-// --------------------------------------------------
+
+// ==================================================
 // CONTROLES
-// --------------------------------------------------
+// ==================================================
 
-const controls = new OrbitControls(
-  camera,
-  renderer.domElement
-);
+const controls =
+  new OrbitControls(
+    camera,
+    renderer.domElement
+  );
 
 controls.enableDamping = true;
+
 controls.dampingFactor = 0.06;
 
-// --------------------------------------------------
+
+// ==================================================
 // LUCES
-// --------------------------------------------------
+// ==================================================
 
 scene.add(
   new THREE.HemisphereLight(
     0xffffff,
     0x445566,
-    1.6
+    1.7
   )
 );
 
-const sol = new THREE.DirectionalLight(
-  0xffffff,
-  2.2
-);
+const sol =
+  new THREE.DirectionalLight(
+    0xffffff,
+    2.0
+  );
 
 sol.position.set(
-  -25000,
-  30000,
-  25000
+  -20000,
+  -30000,
+  35000
 );
 
 scene.add(sol);
 
-// --------------------------------------------------
+
+// ==================================================
 // VARIABLES
-// --------------------------------------------------
+// ==================================================
 
-const estado = document.getElementById("estado");
+const estado =
+  document.getElementById(
+    "estado"
+  );
 
-let modelo = null;
+let terreno = null;
+
 let aguaGrupo = null;
 
 let lagoVacio = false;
+
 let animando = false;
 
 let nivelAguaOriginal = 0;
 
-let cajaModelo;
-let tamañoModelo;
-let centroModelo;
 
-// --------------------------------------------------
-// CARGAR MODELO
-// --------------------------------------------------
+// información del DEM
+let bbox;
 
-const loader = new GLTFLoader();
+let elevMin;
+let elevMax;
 
-loader.load(
+let anchoTerreno;
+let altoTerreno;
 
-  RUTA_MODELO,
+let centroX;
+let centroY;
 
-  async gltf => {
 
-    modelo = gltf.scene;
+// ==================================================
+// CARGAR DEM
+// ==================================================
 
-    scene.add(modelo);
+async function cargarDEM() {
 
-    modelo.updateMatrixWorld(true);
+  estado.innerText =
+    "Descargando DEM...";
 
-    cajaModelo =
-      new THREE.Box3().setFromObject(modelo);
 
-    tamañoModelo =
-      new THREE.Vector3();
-
-    centroModelo =
-      new THREE.Vector3();
-
-    cajaModelo.getSize(tamañoModelo);
-
-    cajaModelo.getCenter(centroModelo);
-
-    console.log(
-      "Centro modelo:",
-      centroModelo
+  const tiff =
+    await fromUrl(
+      RUTA_DEM
     );
 
-    console.log(
-      "Tamaño modelo:",
-      tamañoModelo
+
+  const image =
+    await tiff.getImage();
+
+
+  bbox =
+    image.getBoundingBox();
+
+
+  console.log(
+    "BBOX DEM:",
+    bbox
+  );
+
+
+  const widthOriginal =
+    image.getWidth();
+
+  const heightOriginal =
+    image.getHeight();
+
+
+  const raster =
+    await image.readRasters({
+      interleave: true
+    });
+
+
+  const noData =
+    image.getGDALNoData();
+
+
+  console.log(
+    "NoData:",
+    noData
+  );
+
+
+  anchoTerreno =
+    bbox[2] - bbox[0];
+
+  altoTerreno =
+    bbox[3] - bbox[1];
+
+
+  centroX =
+    (bbox[0] + bbox[2]) / 2;
+
+  centroY =
+    (bbox[1] + bbox[3]) / 2;
+
+
+  const filas =
+    Math.round(
+      COLUMNAS *
+      heightOriginal /
+      widthOriginal
     );
 
-    // Cámara inicial
 
-    const maxDim =
-      Math.max(
-        tamañoModelo.x,
-        tamañoModelo.z
-      );
+  estado.innerText =
+    "Construyendo terreno 3D...";
 
-    camera.position.set(
-      centroModelo.x + maxDim * 0.55,
-      centroModelo.y + maxDim * 0.45,
-      centroModelo.z + maxDim * 0.8
-    );
 
-    controls.target.copy(
-      centroModelo
-    );
+  // ==================================================
+  // CALCULAR ELEVACIONES
+  // ==================================================
 
-    controls.update();
+  elevMin = Infinity;
+  elevMax = -Infinity;
 
-    estado.innerText =
-      "Modelo cargado · preparando lago...";
 
-    await cargarLago();
+  for (
+    let y = 0;
+    y < heightOriginal;
+    y += 5
+  ) {
 
-  },
+    for (
+      let x = 0;
+      x < widthOriginal;
+      x += 5
+    ) {
 
-  xhr => {
+      const indice =
+        y *
+        widthOriginal +
+        x;
 
-    if (xhr.total) {
 
-      const p =
-        Math.round(
-          xhr.loaded /
-          xhr.total *
-          100
-        );
+      const z =
+        raster[indice];
 
-      estado.innerText =
-        "Cargando modelo: " +
-        p +
-        "%";
+
+      if (
+        Number.isFinite(z) &&
+        z !== noData &&
+        z > -1000 &&
+        z < 10000
+      ) {
+
+        elevMin =
+          Math.min(
+            elevMin,
+            z
+          );
+
+        elevMax =
+          Math.max(
+            elevMax,
+            z
+          );
+
+      }
+
     }
 
-  },
-
-  error => {
-
-    console.error(error);
-
-    estado.innerText =
-      "ERROR cargando MODELO5.gltf";
   }
-);
 
-// --------------------------------------------------
-// CONVERTIR COORDENADA GTM AL ESPACIO DEL GLTF
-// --------------------------------------------------
 
-function coordModelo(x, y) {
-
-  const nx =
-    (x - DEM_MIN_X) /
-    (DEM_MAX_X - DEM_MIN_X);
-
-  const ny =
-    (y - DEM_MIN_Y) /
-    (DEM_MAX_Y - DEM_MIN_Y);
-
-  const mx =
-    cajaModelo.min.x +
-    nx * tamañoModelo.x;
-
-  const mz =
-    cajaModelo.max.z -
-    ny * tamañoModelo.z;
-
-  return new THREE.Vector2(
-    mx,
-    mz
+  console.log(
+    "Elevación mínima:",
+    elevMin
   );
+
+  console.log(
+    "Elevación máxima:",
+    elevMax
+  );
+
+
+  // ==================================================
+  // GEOMETRÍA
+  // ==================================================
+
+  const geometry =
+    new THREE.PlaneGeometry(
+      anchoTerreno,
+      altoTerreno,
+      COLUMNAS - 1,
+      filas - 1
+    );
+
+
+  const posiciones =
+    geometry.attributes.position;
+
+
+  for (
+    let i = 0;
+    i < posiciones.count;
+    i++
+  ) {
+
+    const col =
+      i % COLUMNAS;
+
+    const fila =
+      Math.floor(
+        i / COLUMNAS
+      );
+
+
+    const px =
+      Math.round(
+        col /
+        (COLUMNAS - 1) *
+        (widthOriginal - 1)
+      );
+
+
+    const py =
+      Math.round(
+        fila /
+        (filas - 1) *
+        (heightOriginal - 1)
+      );
+
+
+    const indice =
+      py *
+      widthOriginal +
+      px;
+
+
+    let z =
+      raster[indice];
+
+
+    if (
+      !Number.isFinite(z) ||
+      z === noData ||
+      z < -1000 ||
+      z > 10000
+    ) {
+
+      z = elevMin;
+
+    }
+
+
+    posiciones.setZ(
+      i,
+      (
+        z -
+        elevMin
+      ) *
+      EXAGERACION_VERTICAL
+    );
+
+  }
+
+
+  geometry.computeVertexNormals();
+
+
+  // ==================================================
+  // MATERIAL TERRENO
+  // ==================================================
+
+  const material =
+    new THREE.MeshStandardMaterial({
+      color: 0x787ca5,
+      roughness: 0.9,
+      metalness: 0,
+      side: THREE.DoubleSide
+    });
+
+
+  terreno =
+    new THREE.Mesh(
+      geometry,
+      material
+    );
+
+
+  scene.add(
+    terreno
+  );
+
+
+  // ==================================================
+  // CÁMARA
+  // ==================================================
+
+  const maxDim =
+    Math.max(
+      anchoTerreno,
+      altoTerreno
+    );
+
+
+  camera.position.set(
+    maxDim * 0.55,
+    -maxDim * 0.75,
+    maxDim * 0.55
+  );
+
+
+  controls.target.set(
+    0,
+    0,
+    1500
+  );
+
+
+  controls.update();
+
+
+  estado.innerText =
+    "DEM cargado · cargando lago...";
+
+
+  await cargarLago();
+
+
+  estado.innerText =
+    "Visor listo · pulsa 8";
+
 }
 
-// --------------------------------------------------
+
+// ==================================================
+// CONVERTIR GTM A COORDENADAS LOCALES
+// ==================================================
+
+function gtmALocal(
+  x,
+  y
+) {
+
+  const localX =
+    x -
+    centroX;
+
+
+  const localY =
+    y -
+    centroY;
+
+
+  return new THREE.Vector2(
+    localX,
+    localY
+  );
+
+}
+
+
+// ==================================================
 // CARGAR LAGO
-// --------------------------------------------------
+// ==================================================
 
 async function cargarLago() {
 
-  const respuesta =
+  const response =
     await fetch(
       RUTA_LAGO
     );
 
-  if (!respuesta.ok) {
 
-    estado.innerText =
-      "ERROR cargando lago2.geojson";
+  if (
+    !response.ok
+  ) {
 
     throw new Error(
       "No se pudo cargar lago2.geojson"
     );
+
   }
 
+
   const geojson =
-    await respuesta.json();
+    await response.json();
+
 
   console.log(
-    "GeoJSON lago:",
+    "Lago GeoJSON:",
     geojson
   );
 
+
   aguaGrupo =
     new THREE.Group();
+
 
   scene.add(
     aguaGrupo
   );
 
+
+  // ==================================================
+  // NIVEL VERTICAL
+  // ==================================================
+
+  nivelAguaOriginal =
+    (
+      COTA_LAGO -
+      elevMin
+    ) *
+    EXAGERACION_VERTICAL +
+    5;
+
+
+  aguaGrupo.position.z =
+    nivelAguaOriginal;
+
+
+  // ==================================================
+  // MATERIAL AGUA
+  // ==================================================
+
   const materialAgua =
     new THREE.MeshPhysicalMaterial({
 
-      color: 0x157fa8,
+      color:
+        0x1687b8,
 
-      transparent: true,
+      transparent:
+        true,
 
-      opacity: 0.78,
+      opacity:
+        0.76,
 
-      roughness: 0.12,
+      roughness:
+        0.15,
 
-      metalness: 0.03,
+      metalness:
+        0.05,
 
-      transmission: 0.08,
+      transmission:
+        0.08,
 
-      side: THREE.DoubleSide,
+      side:
+        THREE.DoubleSide
 
-      depthWrite: true
     });
 
-  // --------------------------------------------------
+
+  // ==================================================
   // CREAR POLÍGONOS
-  // --------------------------------------------------
+  // ==================================================
 
   for (
     const feature
@@ -397,10 +690,14 @@ async function cargarLago() {
     if (
       !feature.geometry
     ) {
+
       continue;
+
     }
 
+
     let poligonos = [];
+
 
     if (
       feature.geometry.type ===
@@ -413,6 +710,7 @@ async function cargarLago() {
 
     }
 
+
     else if (
       feature.geometry.type ===
       "MultiPolygon"
@@ -423,10 +721,13 @@ async function cargarLago() {
 
     }
 
+
     else {
 
       continue;
+
     }
+
 
     for (
       const poligono
@@ -436,19 +737,22 @@ async function cargarLago() {
       const exterior =
         poligono[0].map(
           c =>
-            coordModelo(
+            gtmALocal(
               c[0],
               c[1]
             )
         );
 
+
       const shape =
         new THREE.Shape();
+
 
       shape.moveTo(
         exterior[0].x,
         exterior[0].y
       );
+
 
       for (
         let i = 1;
@@ -460,9 +764,11 @@ async function cargarLago() {
           exterior[i].x,
           exterior[i].y
         );
+
       }
 
-      // Huecos interiores
+
+      // huecos interiores
 
       if (
         poligono.length > 1
@@ -477,19 +783,22 @@ async function cargarLago() {
           const hueco =
             poligono[h].map(
               c =>
-                coordModelo(
+                gtmALocal(
                   c[0],
                   c[1]
                 )
             );
 
+
           const path =
             new THREE.Path();
+
 
           path.moveTo(
             hueco[0].x,
             hueco[0].y
           );
+
 
           for (
             let i = 1;
@@ -501,182 +810,51 @@ async function cargarLago() {
               hueco[i].x,
               hueco[i].y
             );
+
           }
+
 
           shape.holes.push(
             path
           );
+
         }
+
       }
 
-      const geometria =
+
+      const geometry =
         new THREE.ShapeGeometry(
           shape
         );
 
-      // ShapeGeometry nace en XY.
-      // Lo pasamos a plano XZ.
-
-      geometria.rotateX(
-        Math.PI / 2
-      );
 
       const agua =
         new THREE.Mesh(
-          geometria,
+          geometry,
           materialAgua
         );
+
 
       aguaGrupo.add(
         agua
       );
+
     }
+
   }
 
-  // --------------------------------------------------
-  // CALCULAR NIVEL DEL LAGO AUTOMÁTICAMENTE
-  // --------------------------------------------------
-
-  const raycaster =
-    new THREE.Raycaster();
-
-  const muestrasY = [];
-
-  for (
-    const feature
-    of geojson.features
-  ) {
-
-    let anillos = [];
-
-    if (
-      feature.geometry.type ===
-      "Polygon"
-    ) {
-
-      anillos = [
-        feature.geometry.coordinates[0]
-      ];
-
-    }
-
-    else if (
-      feature.geometry.type ===
-      "MultiPolygon"
-    ) {
-
-      anillos =
-        feature.geometry.coordinates.map(
-          p => p[0]
-        );
-
-    }
-
-    for (
-      const anillo
-      of anillos
-    ) {
-
-      const salto =
-        Math.max(
-          1,
-          Math.floor(
-            anillo.length /
-            80
-          )
-        );
-
-      for (
-        let i = 0;
-        i < anillo.length;
-        i += salto
-      ) {
-
-        const c =
-          coordModelo(
-            anillo[i][0],
-            anillo[i][1]
-          );
-
-        const origen =
-          new THREE.Vector3(
-            c.x,
-            cajaModelo.max.y + 10000,
-            c.y
-          );
-
-        raycaster.set(
-          origen,
-          new THREE.Vector3(
-            0,
-            -1,
-            0
-          )
-        );
-
-        const hits =
-          raycaster.intersectObject(
-            modelo,
-            true
-          );
-
-        if (
-          hits.length > 0
-        ) {
-
-          muestrasY.push(
-            hits[0].point.y
-          );
-        }
-      }
-    }
-  }
 
   console.log(
-    "Muestras de borde:",
-    muestrasY.length
+    "Lago creado"
   );
 
-  if (
-    muestrasY.length > 0
-  ) {
-
-    muestrasY.sort(
-      (a, b) =>
-        a - b
-    );
-
-    nivelAguaOriginal =
-      muestrasY[
-        Math.floor(
-          muestrasY.length /
-          2
-        )
-      ] + 4;
-  }
-
-  else {
-
-    nivelAguaOriginal =
-      cajaModelo.min.y +
-      tamañoModelo.y * 0.35;
-  }
-
-  aguaGrupo.position.y =
-    nivelAguaOriginal;
-
-  console.log(
-    "Nivel agua:",
-    nivelAguaOriginal
-  );
-
-  estado.innerText =
-    "Lago cargado · pulsa 8 para vaciar";
 }
 
-// --------------------------------------------------
-// ANIMACIÓN DEL AGUA
-// --------------------------------------------------
+
+// ==================================================
+// ANIMACIÓN VACIAR / LLENAR
+// ==================================================
 
 function animarAgua(
   vaciar
@@ -686,28 +864,36 @@ function animarAgua(
     !aguaGrupo ||
     animando
   ) {
+
     return;
+
   }
 
+
   animando = true;
+
 
   const inicio =
     performance.now();
 
-  const yInicial =
-    aguaGrupo.position.y;
 
-  const profundidad =
-    tamañoModelo.y *
-    0.75;
+  const zInicial =
+    aguaGrupo.position.z;
 
-  const yFinal =
+
+  const zFinal =
     vaciar
+
       ?
+
       nivelAguaOriginal -
-      profundidad
+      PROFUNDIDAD_VACIADO *
+      EXAGERACION_VERTICAL
+
       :
+
       nivelAguaOriginal;
+
 
   estado.innerText =
     vaciar
@@ -715,6 +901,7 @@ function animarAgua(
       "Vaciando lago..."
       :
       "Llenando lago...";
+
 
   function paso(
     ahora
@@ -730,23 +917,32 @@ function animarAgua(
         1
       );
 
+
     const suave =
       t < 0.5
+
         ?
-        2 * t * t
+
+        2 *
+        t *
+        t
+
         :
+
         1 -
         Math.pow(
           -2 * t + 2,
           2
         ) / 2;
 
-    aguaGrupo.position.y =
+
+    aguaGrupo.position.z =
       THREE.MathUtils.lerp(
-        yInicial,
-        yFinal,
+        zInicial,
+        zFinal,
         suave
       );
+
 
     aguaGrupo.traverse(
       obj => {
@@ -758,21 +954,28 @@ function animarAgua(
 
           obj.material.opacity =
             vaciar
+
               ?
+
               THREE.MathUtils.lerp(
-                0.78,
+                0.76,
                 0.05,
                 suave
               )
+
               :
+
               THREE.MathUtils.lerp(
                 0.05,
-                0.78,
+                0.76,
                 suave
               );
+
         }
+
       }
     );
+
 
     if (
       t < 1
@@ -784,31 +987,43 @@ function animarAgua(
 
     }
 
+
     else {
 
       lagoVacio =
         vaciar;
 
+
       animando =
         false;
 
+
       estado.innerText =
         lagoVacio
+
           ?
+
           "Lago vacío · batimetría visible"
+
           :
-          "Lago lleno · pulsa 8 para vaciar";
+
+          "Lago lleno · pulsa 8";
+
     }
+
   }
+
 
   requestAnimationFrame(
     paso
   );
+
 }
 
-// --------------------------------------------------
+
+// ==================================================
 // TECLA 8
-// --------------------------------------------------
+// ==================================================
 
 window.addEventListener(
   "keydown",
@@ -824,13 +1039,16 @@ window.addEventListener(
       animarAgua(
         !lagoVacio
       );
+
     }
+
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // RESIZE
-// --------------------------------------------------
+// ==================================================
 
 window.addEventListener(
   "resize",
@@ -840,18 +1058,22 @@ window.addEventListener(
       window.innerWidth /
       window.innerHeight;
 
+
     camera.updateProjectionMatrix();
+
 
     renderer.setSize(
       window.innerWidth,
       window.innerHeight
     );
+
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // LOOP
-// --------------------------------------------------
+// ==================================================
 
 function animate() {
 
@@ -859,15 +1081,39 @@ function animate() {
     animate
   );
 
+
   controls.update();
+
 
   renderer.render(
     scene,
     camera
   );
+
 }
 
 animate();
+
+
+// ==================================================
+// INICIAR
+// ==================================================
+
+cargarDEM()
+  .catch(
+    error => {
+
+      console.error(
+        error
+      );
+
+
+      estado.innerText =
+        "ERROR: " +
+        error.message;
+
+    }
+  );
 
 </script>
 
