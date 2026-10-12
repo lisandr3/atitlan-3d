@@ -1,95 +1,118 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Cuenca del Lago de Atitlán - Visor 3D</title>
+<title>Cuenca del Lago de Atitlán - Visor 3D</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #b9ced3;
-      font-family: Arial, sans-serif;
-    }
+<style>
 
-    #visor {
-      width: 100%;
-      height: 100%;
-    }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #b9ced3;
+  font-family: Arial, sans-serif;
+}
 
-    #panel {
-      position: absolute;
-      top: 18px;
-      left: 18px;
-      z-index: 10;
+#visor {
+  width: 100%;
+  height: 100%;
+}
 
-      color: white;
-      background: rgba(0,0,0,0.58);
+#panel {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 20;
 
-      padding: 14px 18px;
-      border-radius: 10px;
-    }
+  color: white;
+  background: rgba(0,0,0,0.62);
 
-    #panel h2 {
-      margin: 0 0 6px 0;
-      font-size: 20px;
-    }
+  padding: 14px 18px;
+  border-radius: 10px;
 
-    #estado {
-      font-size: 14px;
-    }
+  min-width: 270px;
+}
 
-    #ayuda {
-      margin-top: 8px;
-      font-size: 13px;
-      opacity: 0.85;
-    }
+#panel h2 {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+}
 
-    #tecla8 {
-      position: absolute;
-      right: 20px;
-      bottom: 20px;
-      z-index: 10;
+#estado {
+  font-size: 14px;
+}
 
-      color: white;
-      background: rgba(0,0,0,0.55);
+#ayuda {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
 
-      padding: 12px 16px;
-      border-radius: 8px;
+#controles {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
 
-      font-size: 14px;
-    }
-  </style>
+  z-index: 20;
+
+  color: white;
+  background: rgba(0,0,0,0.58);
+
+  padding: 12px 16px;
+  border-radius: 8px;
+
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+</style>
+
 </head>
 
 <body>
 
 <div id="panel">
+
   <h2>Cuenca del Lago de Atitlán</h2>
-  <div id="estado">Cargando DEM...</div>
-  <div id="ayuda">
-    Arrastrar: rotar · rueda: zoom
+
+  <div id="estado">
+    Cargando DEM...
   </div>
+
+  <div id="ayuda">
+    Arrastrar: rotar<br>
+    Rueda: acercar / alejar<br>
+    Clic derecho: desplazar
+  </div>
+
 </div>
 
-<div id="tecla8">
-  Tecla 8 · Vaciar / llenar lago
+<div id="controles">
+  <b>7</b> · Geología<br>
+  <b>8</b> · Vaciar / llenar lago
 </div>
 
 <div id="visor"></div>
 
+
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+    "three":
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+
+    "three/addons/":
+    "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
   }
 }
 </script>
+
 
 <script type="module">
 
@@ -104,9 +127,16 @@ import {
 } from "https://cdn.jsdelivr.net/npm/geotiff@2.1.3/+esm";
 
 
-// ==================================================
-// RUTAS
-// ==================================================
+// ============================================================
+// IMPORTANTE: EL MODELO USA Z COMO EJE VERTICAL
+// ============================================================
+
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
+
+
+// ============================================================
+// ARCHIVOS
+// ============================================================
 
 const RUTA_DEM =
   "data/DEM_unificado.tif";
@@ -114,53 +144,74 @@ const RUTA_DEM =
 const RUTA_LAGO =
   "data/lago2.geojson";
 
+const RUTA_GEOLOGIA =
+  "data/geologia.geojson";
 
-// ==================================================
+const RUTA_ESTILO_GEOLOGIA =
+  "data/geologia.qml";
+
+
+// ============================================================
 // CONFIGURACIÓN
-// ==================================================
+// ============================================================
 
 const EXAGERACION_VERTICAL = 2.0;
 
-// resolución web del terreno
-const COLUMNAS = 420;
+// Menor = más ligero.
+// 450 ya da bastante detalle.
+const COLUMNAS = 450;
 
-// altura aproximada del lago Atitlán
+// Nivel aproximado del Lago de Atitlán
 const COTA_LAGO = 1562;
 
-// cuánto baja el lago
-const PROFUNDIDAD_VACIADO = 600;
+// Distancia vertical que baja el agua
+const PROFUNDIDAD_VACIADO = 700;
+
+// Separación de la geología respecto al DEM
+// para evitar parpadeos.
+const OFFSET_GEOLOGIA = 10;
 
 
-// ==================================================
+// ============================================================
+// HTML
+// ============================================================
+
+const estado =
+  document.getElementById("estado");
+
+const contenedor =
+  document.getElementById("visor");
+
+
+// ============================================================
 // ESCENA
-// ==================================================
+// ============================================================
 
 const scene =
   new THREE.Scene();
 
 scene.background =
-  new THREE.Color(
-    0xb9ced3
-  );
+  new THREE.Color(0xb9ced3);
 
 
-// ==================================================
+// ============================================================
 // CÁMARA
-// ==================================================
+// ============================================================
 
 const camera =
   new THREE.PerspectiveCamera(
     42,
-    window.innerWidth /
-    window.innerHeight,
+    window.innerWidth / window.innerHeight,
     1,
-    200000
+    250000
   );
 
+camera.up.set(0, 0, 1);
 
-// ==================================================
+
+// ============================================================
 // RENDERER
-// ==================================================
+// ============================================================
 
 const renderer =
   new THREE.WebGLRenderer({
@@ -182,16 +233,14 @@ renderer.setPixelRatio(
 renderer.outputColorSpace =
   THREE.SRGBColorSpace;
 
-document
-  .getElementById("visor")
-  .appendChild(
-    renderer.domElement
-  );
+contenedor.appendChild(
+  renderer.domElement
+);
 
 
-// ==================================================
+// ============================================================
 // CONTROLES
-// ==================================================
+// ============================================================
 
 const controls =
   new OrbitControls(
@@ -201,72 +250,250 @@ const controls =
 
 controls.enableDamping = true;
 
-controls.dampingFactor = 0.06;
+controls.dampingFactor = 0.07;
+
+controls.enablePan = true;
+
+controls.screenSpacePanning = false;
+
+// Evita meterse debajo del modelo
+controls.maxPolarAngle =
+  Math.PI * 0.49;
+
+controls.minDistance = 100;
+
+controls.maxDistance = 150000;
 
 
-// ==================================================
-// LUCES
-// ==================================================
+// ============================================================
+// ILUMINACIÓN
+// ============================================================
 
-scene.add(
+const hemi =
   new THREE.HemisphereLight(
     0xffffff,
-    0x445566,
+    0x46515b,
     1.7
-  )
-);
+  );
+
+scene.add(hemi);
+
 
 const sol =
   new THREE.DirectionalLight(
     0xffffff,
-    2.0
+    2.3
   );
 
 sol.position.set(
   -20000,
-  -30000,
-  35000
+  -25000,
+  40000
 );
 
 scene.add(sol);
 
 
-// ==================================================
-// VARIABLES
-// ==================================================
+// ============================================================
+// VARIABLES DEM
+// ============================================================
 
-const estado =
-  document.getElementById(
-    "estado"
-  );
+let demRaster = null;
+
+let demWidth = 0;
+let demHeight = 0;
+
+let demNoData = null;
+
+let bbox;
+
+let elevMin = Infinity;
+let elevMax = -Infinity;
+
+let centroX;
+let centroY;
+
+let anchoTerreno;
+let altoTerreno;
+
+
+// ============================================================
+// OBJETOS
+// ============================================================
 
 let terreno = null;
 
 let aguaGrupo = null;
 
+let geologiaGrupo = null;
+
+let geologiaVisible = true;
+
 let lagoVacio = false;
 
-let animando = false;
+let animandoAgua = false;
 
 let nivelAguaOriginal = 0;
 
 
-// información del DEM
-let bbox;
+// ============================================================
+// COMPROBAR VALOR DEM
+// ============================================================
 
-let elevMin;
-let elevMax;
+function valorValido(z) {
 
-let anchoTerreno;
-let altoTerreno;
+  if (!Number.isFinite(z)) {
+    return false;
+  }
 
-let centroX;
-let centroY;
+  if (
+    demNoData !== null &&
+    Number.isFinite(demNoData) &&
+    Math.abs(z - demNoData) < 0.001
+  ) {
+    return false;
+  }
+
+  return true;
+}
 
 
-// ==================================================
+// ============================================================
+// OBTENER ELEVACIÓN EN COORDENADA GTM
+// ============================================================
+
+function elevacionEnGTM(x, y) {
+
+  if (
+    x < bbox[0] ||
+    x > bbox[2] ||
+    y < bbox[1] ||
+    y > bbox[3]
+  ) {
+    return null;
+  }
+
+
+  const fx =
+    (x - bbox[0]) /
+    (bbox[2] - bbox[0]) *
+    (demWidth - 1);
+
+
+  const fy =
+    (bbox[3] - y) /
+    (bbox[3] - bbox[1]) *
+    (demHeight - 1);
+
+
+  const px =
+    Math.round(fx);
+
+  const py =
+    Math.round(fy);
+
+
+  // Intento directo
+
+  const indice =
+    py * demWidth + px;
+
+  let z =
+    demRaster[indice];
+
+
+  if (valorValido(z)) {
+    return z;
+  }
+
+
+  // Si estamos exactamente en el borde de la cuenca,
+  // buscamos un píxel vecino válido.
+
+  for (
+    let radio = 1;
+    radio <= 5;
+    radio++
+  ) {
+
+    for (
+      let dy = -radio;
+      dy <= radio;
+      dy++
+    ) {
+
+      for (
+        let dx = -radio;
+        dx <= radio;
+        dx++
+      ) {
+
+        const xx =
+          px + dx;
+
+        const yy =
+          py + dy;
+
+
+        if (
+          xx < 0 ||
+          xx >= demWidth ||
+          yy < 0 ||
+          yy >= demHeight
+        ) {
+          continue;
+        }
+
+
+        const valor =
+          demRaster[
+            yy * demWidth + xx
+          ];
+
+
+        if (valorValido(valor)) {
+          return valor;
+        }
+
+      }
+
+    }
+
+  }
+
+
+  return null;
+}
+
+
+// ============================================================
+// COORDENADA GTM → ESCENA
+// ============================================================
+
+function gtmALocal(x, y) {
+
+  return new THREE.Vector2(
+    x - centroX,
+    y - centroY
+  );
+}
+
+
+// ============================================================
+// ELEVACIÓN REAL → Z DE THREE.JS
+// ============================================================
+
+function elevacionAZ(z) {
+
+  return (
+    z - elevMin
+  ) * EXAGERACION_VERTICAL;
+}
+
+
+// ============================================================
 // CARGAR DEM
-// ==================================================
+// ============================================================
 
 async function cargarDEM() {
 
@@ -288,32 +515,39 @@ async function cargarDEM() {
     image.getBoundingBox();
 
 
-  console.log(
-    "BBOX DEM:",
-    bbox
-  );
-
-
-  const widthOriginal =
+  demWidth =
     image.getWidth();
 
-  const heightOriginal =
+  demHeight =
     image.getHeight();
 
 
-  const raster =
+  demRaster =
     await image.readRasters({
       interleave: true
     });
 
 
-  const noData =
+  const nodataOriginal =
     image.getGDALNoData();
 
 
+  demNoData =
+    nodataOriginal !== null
+      ?
+      Number(nodataOriginal)
+      :
+      null;
+
+
+  console.log(
+    "BBOX DEM:",
+    bbox
+  );
+
   console.log(
     "NoData:",
-    noData
+    demNoData
   );
 
 
@@ -331,70 +565,37 @@ async function cargarDEM() {
     (bbox[1] + bbox[3]) / 2;
 
 
-  const filas =
-    Math.round(
-      COLUMNAS *
-      heightOriginal /
-      widthOriginal
-    );
-
-
-  estado.innerText =
-    "Construyendo terreno 3D...";
-
-
-  // ==================================================
-  // CALCULAR ELEVACIONES
-  // ==================================================
-
-  elevMin = Infinity;
-  elevMax = -Infinity;
-
+  // ==========================================================
+  // ELEVACIÓN MÍNIMA Y MÁXIMA
+  // ==========================================================
 
   for (
-    let y = 0;
-    y < heightOriginal;
-    y += 5
+    let i = 0;
+    i < demRaster.length;
+    i++
   ) {
 
-    for (
-      let x = 0;
-      x < widthOriginal;
-      x += 5
-    ) {
-
-      const indice =
-        y *
-        widthOriginal +
-        x;
+    const z =
+      demRaster[i];
 
 
-      const z =
-        raster[indice];
-
-
-      if (
-        Number.isFinite(z) &&
-        z !== noData &&
-        z > -1000 &&
-        z < 10000
-      ) {
-
-        elevMin =
-          Math.min(
-            elevMin,
-            z
-          );
-
-        elevMax =
-          Math.max(
-            elevMax,
-            z
-          );
-
-      }
-
+    if (!valorValido(z)) {
+      continue;
     }
+
+
+    elevMin =
+      Math.min(
+        elevMin,
+        z
+      );
+
+
+    elevMax =
+      Math.max(
+        elevMax,
+        z
+      );
 
   }
 
@@ -410,101 +611,257 @@ async function cargarDEM() {
   );
 
 
-  // ==================================================
-  // GEOMETRÍA
-  // ==================================================
+  estado.innerText =
+    "Construyendo cuenca 3D...";
 
-  const geometry =
-    new THREE.PlaneGeometry(
-      anchoTerreno,
-      altoTerreno,
-      COLUMNAS - 1,
-      filas - 1
+
+  crearTerreno();
+
+
+  prepararCamara();
+
+
+  estado.innerText =
+    "Cargando lago...";
+
+
+  await cargarLago();
+
+
+  estado.innerText =
+    "Cargando geología...";
+
+
+  await cargarGeologia();
+
+
+  estado.innerText =
+    "Visor listo";
+
+}
+
+
+// ============================================================
+// CREAR TERRENO SIN NODATA
+// ============================================================
+
+function crearTerreno() {
+
+  const filas =
+    Math.round(
+      COLUMNAS *
+      demHeight /
+      demWidth
     );
 
 
-  const posiciones =
-    geometry.attributes.position;
+  const posiciones = [];
 
+  const validos = [];
+
+  const alturas = [];
+
+
+  // ==========================================================
+  // CREAR MALLA DE PUNTOS
+  // ==========================================================
 
   for (
-    let i = 0;
-    i < posiciones.count;
-    i++
+    let fila = 0;
+    fila < filas;
+    fila++
   ) {
-
-    const col =
-      i % COLUMNAS;
-
-    const fila =
-      Math.floor(
-        i / COLUMNAS
-      );
-
-
-    const px =
-      Math.round(
-        col /
-        (COLUMNAS - 1) *
-        (widthOriginal - 1)
-      );
-
 
     const py =
       Math.round(
         fila /
         (filas - 1) *
-        (heightOriginal - 1)
+        (demHeight - 1)
       );
 
 
-    const indice =
-      py *
-      widthOriginal +
-      px;
+    const mapY =
+      bbox[3] -
+      fila /
+      (filas - 1) *
+      altoTerreno;
 
 
-    let z =
-      raster[indice];
+    const localY =
+      mapY - centroY;
 
 
-    if (
-      !Number.isFinite(z) ||
-      z === noData ||
-      z < -1000 ||
-      z > 10000
+    for (
+      let col = 0;
+      col < COLUMNAS;
+      col++
     ) {
 
-      z = elevMin;
+      const px =
+        Math.round(
+          col /
+          (COLUMNAS - 1) *
+          (demWidth - 1)
+        );
+
+
+      const mapX =
+        bbox[0] +
+        col /
+        (COLUMNAS - 1) *
+        anchoTerreno;
+
+
+      const localX =
+        mapX - centroX;
+
+
+      const valor =
+        demRaster[
+          py * demWidth + px
+        ];
+
+
+      const valido =
+        valorValido(valor);
+
+
+      validos.push(
+        valido
+      );
+
+
+      alturas.push(
+        valido
+          ?
+          elevacionAZ(valor)
+          :
+          0
+      );
+
+
+      posiciones.push(
+        localX,
+        localY,
+        valido
+          ?
+          elevacionAZ(valor)
+          :
+          0
+      );
 
     }
 
+  }
 
-    posiciones.setZ(
-      i,
-      (
-        z -
-        elevMin
-      ) *
-      EXAGERACION_VERTICAL
-    );
+
+  // ==========================================================
+  // CREAR SOLO TRIÁNGULOS VÁLIDOS
+  // ==========================================================
+
+  const indices = [];
+
+
+  for (
+    let fila = 0;
+    fila < filas - 1;
+    fila++
+  ) {
+
+    for (
+      let col = 0;
+      col < COLUMNAS - 1;
+      col++
+    ) {
+
+      const a =
+        fila * COLUMNAS +
+        col;
+
+      const b =
+        a + 1;
+
+      const c =
+        (fila + 1) *
+        COLUMNAS +
+        col;
+
+      const d =
+        c + 1;
+
+
+      // triángulo 1
+      if (
+        validos[a] &&
+        validos[c] &&
+        validos[b]
+      ) {
+
+        indices.push(
+          a,
+          c,
+          b
+        );
+
+      }
+
+
+      // triángulo 2
+      if (
+        validos[b] &&
+        validos[c] &&
+        validos[d]
+      ) {
+
+        indices.push(
+          b,
+          c,
+          d
+        );
+
+      }
+
+    }
 
   }
+
+
+  const geometry =
+    new THREE.BufferGeometry();
+
+
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      posiciones,
+      3
+    )
+  );
+
+
+  geometry.setIndex(
+    indices
+  );
 
 
   geometry.computeVertexNormals();
 
 
-  // ==================================================
-  // MATERIAL TERRENO
-  // ==================================================
-
   const material =
     new THREE.MeshStandardMaterial({
-      color: 0x787ca5,
-      roughness: 0.9,
-      metalness: 0,
-      side: THREE.DoubleSide
+
+      color:
+        0x7b7ea5,
+
+      roughness:
+        0.88,
+
+      metalness:
+        0,
+
+      side:
+        THREE.DoubleSide
+
     });
 
 
@@ -520,9 +877,19 @@ async function cargarDEM() {
   );
 
 
-  // ==================================================
-  // CÁMARA
-  // ==================================================
+  console.log(
+    "Triángulos terreno:",
+    indices.length / 3
+  );
+
+}
+
+
+// ============================================================
+// CÁMARA
+// ============================================================
+
+function prepararCamara() {
 
   const maxDim =
     Math.max(
@@ -533,7 +900,7 @@ async function cargarDEM() {
 
   camera.position.set(
     maxDim * 0.55,
-    -maxDim * 0.75,
+    -maxDim * 0.72,
     maxDim * 0.55
   );
 
@@ -541,56 +908,114 @@ async function cargarDEM() {
   controls.target.set(
     0,
     0,
-    1500
+    (
+      elevMax -
+      elevMin
+    ) *
+    EXAGERACION_VERTICAL *
+    0.18
   );
 
 
   controls.update();
-
-
-  estado.innerText =
-    "DEM cargado · cargando lago...";
-
-
-  await cargarLago();
-
-
-  estado.innerText =
-    "Visor listo · pulsa 8";
-
 }
 
 
-// ==================================================
-// CONVERTIR GTM A COORDENADAS LOCALES
-// ==================================================
+// ============================================================
+// CREAR SHAPE DESDE POLÍGONO
+// ============================================================
 
-function gtmALocal(
-  x,
-  y
-) {
+function crearShape(poligono) {
 
-  const localX =
-    x -
-    centroX;
-
-
-  const localY =
-    y -
-    centroY;
+  const exterior =
+    poligono[0].map(
+      c =>
+        gtmALocal(
+          c[0],
+          c[1]
+        )
+    );
 
 
-  return new THREE.Vector2(
-    localX,
-    localY
+  const shape =
+    new THREE.Shape();
+
+
+  shape.moveTo(
+    exterior[0].x,
+    exterior[0].y
   );
 
+
+  for (
+    let i = 1;
+    i < exterior.length;
+    i++
+  ) {
+
+    shape.lineTo(
+      exterior[i].x,
+      exterior[i].y
+    );
+
+  }
+
+
+  // Huecos
+  for (
+    let h = 1;
+    h < poligono.length;
+    h++
+  ) {
+
+    const coords =
+      poligono[h].map(
+        c =>
+          gtmALocal(
+            c[0],
+            c[1]
+          )
+      );
+
+
+    const hole =
+      new THREE.Path();
+
+
+    hole.moveTo(
+      coords[0].x,
+      coords[0].y
+    );
+
+
+    for (
+      let i = 1;
+      i < coords.length;
+      i++
+    ) {
+
+      hole.lineTo(
+        coords[i].x,
+        coords[i].y
+      );
+
+    }
+
+
+    shape.holes.push(
+      hole
+    );
+
+  }
+
+
+  return shape;
 }
 
 
-// ==================================================
-// CARGAR LAGO
-// ==================================================
+// ============================================================
+// LAGO
+// ============================================================
 
 async function cargarLago() {
 
@@ -600,12 +1025,10 @@ async function cargarLago() {
     );
 
 
-  if (
-    !response.ok
-  ) {
+  if (!response.ok) {
 
     throw new Error(
-      "No se pudo cargar lago2.geojson"
+      "No se encontró lago2.geojson"
     );
 
   }
@@ -613,12 +1036,6 @@ async function cargarLago() {
 
   const geojson =
     await response.json();
-
-
-  console.log(
-    "Lago GeoJSON:",
-    geojson
-  );
 
 
   aguaGrupo =
@@ -630,44 +1047,23 @@ async function cargarLago() {
   );
 
 
-  // ==================================================
-  // NIVEL VERTICAL
-  // ==================================================
-
-  nivelAguaOriginal =
-    (
-      COTA_LAGO -
-      elevMin
-    ) *
-    EXAGERACION_VERTICAL +
-    5;
-
-
-  aguaGrupo.position.z =
-    nivelAguaOriginal;
-
-
-  // ==================================================
-  // MATERIAL AGUA
-  // ==================================================
-
-  const materialAgua =
+  const material =
     new THREE.MeshPhysicalMaterial({
 
       color:
-        0x1687b8,
+        0x147fa9,
 
       transparent:
         true,
 
       opacity:
-        0.76,
+        0.82,
 
       roughness:
         0.15,
 
       metalness:
-        0.05,
+        0.03,
 
       transmission:
         0.08,
@@ -678,21 +1074,502 @@ async function cargarLago() {
     });
 
 
-  // ==================================================
-  // CREAR POLÍGONOS
-  // ==================================================
+  nivelAguaOriginal =
+    elevacionAZ(
+      COTA_LAGO
+    ) + 5;
+
+
+  aguaGrupo.position.z =
+    nivelAguaOriginal;
+
 
   for (
     const feature
     of geojson.features
   ) {
 
+    if (!feature.geometry) {
+      continue;
+    }
+
+
+    let poligonos = [];
+
+
     if (
-      !feature.geometry
+      feature.geometry.type ===
+      "Polygon"
     ) {
 
-      continue;
+      poligonos = [
+        feature.geometry.coordinates
+      ];
 
+    }
+
+
+    else if (
+      feature.geometry.type ===
+      "MultiPolygon"
+    ) {
+
+      poligonos =
+        feature.geometry.coordinates;
+
+    }
+
+
+    for (
+      const poligono
+      of poligonos
+    ) {
+
+      const shape =
+        crearShape(
+          poligono
+        );
+
+
+      const geometry =
+        new THREE.ShapeGeometry(
+          shape
+        );
+
+
+      const mesh =
+        new THREE.Mesh(
+          geometry,
+          material
+        );
+
+
+      aguaGrupo.add(
+        mesh
+      );
+
+    }
+
+  }
+
+}
+
+
+// ============================================================
+// LEER COLOR QGIS
+// ============================================================
+
+function colorQgisAThree(valor) {
+
+  if (!valor) {
+    return new THREE.Color(0xcccccc);
+  }
+
+
+  const partes =
+    valor
+      .split(",")
+      .map(Number);
+
+
+  if (
+    partes.length >= 3
+  ) {
+
+    return new THREE.Color(
+      partes[0] / 255,
+      partes[1] / 255,
+      partes[2] / 255
+    );
+
+  }
+
+
+  try {
+
+    return new THREE.Color(
+      valor
+    );
+
+  }
+  catch {
+
+    return new THREE.Color(
+      0xcccccc
+    );
+
+  }
+
+}
+
+
+// ============================================================
+// LEER ESTILO .QML
+// ============================================================
+
+async function cargarEstiloQML() {
+
+  const response =
+    await fetch(
+      RUTA_ESTILO_GEOLOGIA
+    );
+
+
+  if (!response.ok) {
+
+    console.warn(
+      "No se encontró geologia.qml"
+    );
+
+    return null;
+  }
+
+
+  const texto =
+    await response.text();
+
+
+  const xml =
+    new DOMParser()
+      .parseFromString(
+        texto,
+        "text/xml"
+      );
+
+
+  const rendererQgis =
+    xml.querySelector(
+      "renderer-v2"
+    );
+
+
+  if (!rendererQgis) {
+    return null;
+  }
+
+
+  const campo =
+    rendererQgis.getAttribute(
+      "attr"
+    );
+
+
+  const coloresPorSimbolo =
+    new Map();
+
+
+  // ----------------------------------------------------------
+  // símbolos QGIS
+  // ----------------------------------------------------------
+
+  const simbolos =
+    xml.querySelectorAll(
+      "symbols > symbol"
+    );
+
+
+  simbolos.forEach(
+    simbolo => {
+
+      const id =
+        simbolo.getAttribute(
+          "name"
+        );
+
+
+      let color = null;
+
+
+      const opciones =
+        simbolo.querySelectorAll(
+          "Option"
+        );
+
+
+      opciones.forEach(
+        opcion => {
+
+          if (
+            opcion.getAttribute(
+              "name"
+            ) === "color"
+          ) {
+
+            const value =
+              opcion.getAttribute(
+                "value"
+              );
+
+
+            if (value) {
+              color = value;
+            }
+
+          }
+
+        }
+      );
+
+
+      if (color) {
+
+        coloresPorSimbolo.set(
+          id,
+          color
+        );
+
+      }
+
+    }
+  );
+
+
+  // ----------------------------------------------------------
+  // categorías
+  // ----------------------------------------------------------
+
+  const categorias =
+    new Map();
+
+
+  xml
+    .querySelectorAll(
+      "categories > category"
+    )
+    .forEach(
+      categoria => {
+
+        const valor =
+          categoria.getAttribute(
+            "value"
+          );
+
+        const simbolo =
+          categoria.getAttribute(
+            "symbol"
+          );
+
+
+        if (
+          coloresPorSimbolo.has(
+            simbolo
+          )
+        ) {
+
+          categorias.set(
+            String(valor),
+            coloresPorSimbolo.get(
+              simbolo
+            )
+          );
+
+        }
+
+      }
+    );
+
+
+  console.log(
+    "Campo geología QML:",
+    campo
+  );
+
+
+  console.log(
+    "Categorías geología:",
+    categorias
+  );
+
+
+  return {
+    campo,
+    categorias,
+    coloresPorSimbolo
+  };
+}
+
+
+// ============================================================
+// DRAPEAR GEOMETRÍA SOBRE DEM
+// ============================================================
+
+function drapearGeometria(
+  geometry
+) {
+
+  const original =
+    geometry.index
+      ?
+      geometry.toNonIndexed()
+      :
+      geometry;
+
+
+  const pos =
+    original.attributes.position;
+
+
+  const nuevasPosiciones = [];
+
+
+  // ShapeGeometry contiene triángulos consecutivos
+  for (
+    let i = 0;
+    i < pos.count;
+    i += 3
+  ) {
+
+    const triangulo = [];
+
+    let valido = true;
+
+
+    for (
+      let j = 0;
+      j < 3;
+      j++
+    ) {
+
+      const indice =
+        i + j;
+
+
+      const localX =
+        pos.getX(indice);
+
+      const localY =
+        pos.getY(indice);
+
+
+      const gtmX =
+        localX +
+        centroX;
+
+
+      const gtmY =
+        localY +
+        centroY;
+
+
+      const zReal =
+        elevacionEnGTM(
+          gtmX,
+          gtmY
+        );
+
+
+      if (
+        zReal === null
+      ) {
+
+        valido = false;
+        break;
+
+      }
+
+
+      triangulo.push(
+        localX,
+        localY,
+        elevacionAZ(zReal) +
+        OFFSET_GEOLOGIA
+      );
+
+    }
+
+
+    if (valido) {
+
+      nuevasPosiciones.push(
+        ...triangulo
+      );
+
+    }
+
+  }
+
+
+  const resultado =
+    new THREE.BufferGeometry();
+
+
+  resultado.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      nuevasPosiciones,
+      3
+    )
+  );
+
+
+  resultado.computeVertexNormals();
+
+
+  return resultado;
+}
+
+
+// ============================================================
+// GEOLOGÍA
+// ============================================================
+
+async function cargarGeologia() {
+
+  const [
+    respuestaGeoJSON,
+    estilo
+  ] =
+    await Promise.all([
+
+      fetch(
+        RUTA_GEOLOGIA
+      ),
+
+      cargarEstiloQML()
+
+    ]);
+
+
+  if (!respuestaGeoJSON.ok) {
+
+    console.warn(
+      "No se encontró geologia.geojson"
+    );
+
+    return;
+  }
+
+
+  const geojson =
+    await respuestaGeoJSON.json();
+
+
+  console.log(
+    "Geología:",
+    geojson
+  );
+
+
+  geologiaGrupo =
+    new THREE.Group();
+
+
+  geologiaGrupo.name =
+    "Geologia";
+
+
+  scene.add(
+    geologiaGrupo
+  );
+
+
+  for (
+    const feature
+    of geojson.features
+  ) {
+
+    if (!feature.geometry) {
+      continue;
     }
 
 
@@ -725,8 +1602,73 @@ async function cargarLago() {
     else {
 
       continue;
+    }
+
+
+    // ========================================================
+    // COLOR DE LA CATEGORÍA QGIS
+    // ========================================================
+
+    let color =
+      new THREE.Color(
+        0xd9b98c
+      );
+
+
+    if (
+      estilo &&
+      estilo.campo
+    ) {
+
+      const valor =
+        String(
+          feature.properties?.[
+            estilo.campo
+          ] ?? ""
+        );
+
+
+      const colorQml =
+        estilo.categorias.get(
+          valor
+        );
+
+
+      if (colorQml) {
+
+        color =
+          colorQgisAThree(
+            colorQml
+          );
+
+      }
 
     }
+
+
+    const material =
+      new THREE.MeshStandardMaterial({
+
+        color: color,
+
+        transparent: true,
+
+        opacity: 0.78,
+
+        roughness: 0.9,
+
+        metalness: 0,
+
+        side:
+          THREE.DoubleSide,
+
+        polygonOffset: true,
+
+        polygonOffsetFactor: -2,
+
+        polygonOffsetUnits: -2
+
+      });
 
 
     for (
@@ -734,110 +1676,44 @@ async function cargarLago() {
       of poligonos
     ) {
 
-      const exterior =
-        poligono[0].map(
-          c =>
-            gtmALocal(
-              c[0],
-              c[1]
-            )
-        );
-
-
       const shape =
-        new THREE.Shape();
-
-
-      shape.moveTo(
-        exterior[0].x,
-        exterior[0].y
-      );
-
-
-      for (
-        let i = 1;
-        i < exterior.length;
-        i++
-      ) {
-
-        shape.lineTo(
-          exterior[i].x,
-          exterior[i].y
+        crearShape(
+          poligono
         );
 
-      }
 
-
-      // huecos interiores
-
-      if (
-        poligono.length > 1
-      ) {
-
-        for (
-          let h = 1;
-          h < poligono.length;
-          h++
-        ) {
-
-          const hueco =
-            poligono[h].map(
-              c =>
-                gtmALocal(
-                  c[0],
-                  c[1]
-                )
-            );
-
-
-          const path =
-            new THREE.Path();
-
-
-          path.moveTo(
-            hueco[0].x,
-            hueco[0].y
-          );
-
-
-          for (
-            let i = 1;
-            i < hueco.length;
-            i++
-          ) {
-
-            path.lineTo(
-              hueco[i].x,
-              hueco[i].y
-            );
-
-          }
-
-
-          shape.holes.push(
-            path
-          );
-
-        }
-
-      }
-
-
-      const geometry =
+      const plana =
         new THREE.ShapeGeometry(
           shape
         );
 
 
-      const agua =
-        new THREE.Mesh(
-          geometry,
-          materialAgua
+      const geometry =
+        drapearGeometria(
+          plana
         );
 
 
-      aguaGrupo.add(
-        agua
+      if (
+        geometry.attributes.position.count === 0
+      ) {
+        continue;
+      }
+
+
+      const mesh =
+        new THREE.Mesh(
+          geometry,
+          material
+        );
+
+
+      mesh.userData =
+        feature.properties;
+
+
+      geologiaGrupo.add(
+        mesh
       );
 
     }
@@ -846,15 +1722,16 @@ async function cargarLago() {
 
 
   console.log(
-    "Lago creado"
+    "Polígonos geología cargados:",
+    geologiaGrupo.children.length
   );
 
 }
 
 
-// ==================================================
-// ANIMACIÓN VACIAR / LLENAR
-// ==================================================
+// ============================================================
+// VACIAR / LLENAR LAGO
+// ============================================================
 
 function animarAgua(
   vaciar
@@ -862,15 +1739,13 @@ function animarAgua(
 
   if (
     !aguaGrupo ||
-    animando
+    animandoAgua
   ) {
-
     return;
-
   }
 
 
-  animando = true;
+  animandoAgua = true;
 
 
   const inicio =
@@ -883,52 +1758,39 @@ function animarAgua(
 
   const zFinal =
     vaciar
-
       ?
-
       nivelAguaOriginal -
       PROFUNDIDAD_VACIADO *
       EXAGERACION_VERTICAL
-
       :
-
       nivelAguaOriginal;
 
 
   estado.innerText =
     vaciar
       ?
-      "Vaciando lago..."
+      "Vaciando Lago de Atitlán..."
       :
-      "Llenando lago...";
+      "Llenando Lago de Atitlán...";
 
 
-  function paso(
-    ahora
-  ) {
+  function paso(ahora) {
 
     const t =
       Math.min(
         (
           ahora -
           inicio
-        ) /
-        2500,
+        ) / 2500,
         1
       );
 
 
     const suave =
       t < 0.5
-
         ?
-
-        2 *
-        t *
-        t
-
+        2 * t * t
         :
-
         1 -
         Math.pow(
           -2 * t + 2,
@@ -954,20 +1816,16 @@ function animarAgua(
 
           obj.material.opacity =
             vaciar
-
               ?
-
               THREE.MathUtils.lerp(
-                0.76,
-                0.05,
+                0.82,
+                0.08,
                 suave
               )
-
               :
-
               THREE.MathUtils.lerp(
-                0.05,
-                0.76,
+                0.08,
+                0.82,
                 suave
               );
 
@@ -977,9 +1835,7 @@ function animarAgua(
     );
 
 
-    if (
-      t < 1
-    ) {
+    if (t < 1) {
 
       requestAnimationFrame(
         paso
@@ -987,27 +1843,21 @@ function animarAgua(
 
     }
 
-
     else {
 
       lagoVacio =
         vaciar;
 
-
-      animando =
+      animandoAgua =
         false;
 
 
       estado.innerText =
         lagoVacio
-
           ?
-
           "Lago vacío · batimetría visible"
-
           :
-
-          "Lago lleno · pulsa 8";
+          "Lago lleno";
 
     }
 
@@ -1021,19 +1871,46 @@ function animarAgua(
 }
 
 
-// ==================================================
-// TECLA 8
-// ==================================================
+// ============================================================
+// TECLADO
+// ============================================================
 
 window.addEventListener(
   "keydown",
   e => {
 
+    // GEOLOGÍA
     if (
-      e.code ===
-      "Digit8" ||
-      e.code ===
-      "Numpad8"
+      e.code === "Digit7" ||
+      e.code === "Numpad7"
+    ) {
+
+      if (geologiaGrupo) {
+
+        geologiaVisible =
+          !geologiaVisible;
+
+
+        geologiaGrupo.visible =
+          geologiaVisible;
+
+
+        estado.innerText =
+          geologiaVisible
+            ?
+            "Geología visible"
+            :
+            "Geología oculta";
+
+      }
+
+    }
+
+
+    // LAGO
+    if (
+      e.code === "Digit8" ||
+      e.code === "Numpad8"
     ) {
 
       animarAgua(
@@ -1046,9 +1923,9 @@ window.addEventListener(
 );
 
 
-// ==================================================
+// ============================================================
 // RESIZE
-// ==================================================
+// ============================================================
 
 window.addEventListener(
   "resize",
@@ -1071,9 +1948,9 @@ window.addEventListener(
 );
 
 
-// ==================================================
-// LOOP
-// ==================================================
+// ============================================================
+// ANIMACIÓN
+// ============================================================
 
 function animate() {
 
@@ -1092,12 +1969,13 @@ function animate() {
 
 }
 
+
 animate();
 
 
-// ==================================================
+// ============================================================
 // INICIAR
-// ==================================================
+// ============================================================
 
 cargarDEM()
   .catch(
