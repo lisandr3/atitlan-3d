@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Cuenca del Lago de Atitlán - Visor 3D</title>
+
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111;
+      font-family: Arial, sans-serif;
+    }
+
+    #visor {
+      width: 100%;
+      height: 100%;
+    }
+
+    #titulo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      color: white;
+      background: rgba(0,0,0,0.55);
+      padding: 12px 18px;
+      border-radius: 8px;
+    }
+
+    #titulo h2 {
+      margin: 0 0 5px 0;
+    }
+
+    #estado {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="titulo">
+  <h2>Cuenca del Lago de Atitlán</h2>
+  <div id="estado">Cargando DEM...</div>
+</div>
+
+<div id="visor"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
+
+<script type="module">
+
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const contenedor = document.getElementById("visor");
+const estado = document.getElementById("estado");
+
+
+// --------------------------------------------------
+// ESCENA
+// --------------------------------------------------
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0xbfd8e8);
+
+
+// --------------------------------------------------
+// CÁMARA
+// --------------------------------------------------
+
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  1,
+  200000
+);
+
+camera.position.set(0, -28000, 20000);
+
+
+// --------------------------------------------------
+// RENDER
+// --------------------------------------------------
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: true
+});
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+
+contenedor.appendChild(renderer.domElement);
+
+
+// --------------------------------------------------
+// CONTROLES
+// --------------------------------------------------
+
+const controls = new OrbitControls(camera, renderer.domElement);
+
+controls.enableDamping = true;
+
+controls.target.set(0, 0, 0);
+
+
+// --------------------------------------------------
+// ILUMINACIÓN
+// --------------------------------------------------
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.6));
+
+const sol = new THREE.DirectionalLight(0xffffff, 2);
+
+sol.position.set(-10000, -10000, 30000);
+
+scene.add(sol);
+
+
+// --------------------------------------------------
+// PROYECCIÓN GTM GUATEMALA
+// --------------------------------------------------
+
+proj4.defs(
+  "GTM",
+  "+proj=tmerc +lat_0=0 +lon_0=-90.5 +k=0.9998 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs"
+);
+
+
+// --------------------------------------------------
+// CARGAR DEM
+// --------------------------------------------------
+
+async function cargarDEM() {
+
+  const tiff = await GeoTIFF.fromUrl(
+    "data/DEM_unificado.tif"
+  );
+
+  const image = await tiff.getImage();
+
+  const bbox = image.getBoundingBox();
+
+  const raster = await image.readRasters({
+    interleave: true
+  });
+
+  const widthOriginal = image.getWidth();
+  const heightOriginal = image.getHeight();
+
+
+  // Reducimos resolución para que el navegador no se sobrecargue
+
+  const columnas = 350;
+
+  const filas = Math.round(
+    columnas * heightOriginal / widthOriginal
+  );
+
+
+  const anchoTerreno = bbox[2] - bbox[0];
+  const altoTerreno = bbox[3] - bbox[1];
+
+
+  const geometry = new THREE.PlaneGeometry(
+    anchoTerreno,
+    altoTerreno,
+    columnas - 1,
+    filas - 1
+  );
+
+
+  const posiciones = geometry.attributes.position;
+
+
+  let elevMin = Infinity;
+  let elevMax = -Infinity;
+
+
+  for (let i = 0; i < posiciones.count; i++) {
+
+    const col = i % columnas;
+
+    const fila = Math.floor(i / columnas);
+
+
+    const pixelX = Math.floor(
+      col / (columnas - 1) * (widthOriginal - 1)
+    );
+
+    const pixelY = Math.floor(
+      fila / (filas - 1) * (heightOriginal - 1)
+    );
+
+
+    const indice =
+      pixelY * widthOriginal + pixelX;
+
+
+    let z = raster[indice];
+
+
+    if (!Number.isFinite(z) || z <= -9990) {
+      z = 0;
+    }
+
+    if (z > 0) {
+
+      elevMin = Math.min(elevMin, z);
+
+      elevMax = Math.max(elevMax, z);
+
+    }
+
+  }
+
+
+  const exageracionVertical = 2.0;
+
+
+  for (let i = 0; i < posiciones.count; i++) {
+
+    const col = i % columnas;
+
+    const fila = Math.floor(i / columnas);
+
+
+    const pixelX = Math.floor(
+      col / (columnas - 1) * (widthOriginal - 1)
+    );
+
+    const pixelY = Math.floor(
+      fila / (filas - 1) * (heightOriginal - 1)
+    );
+
+
+    const indice =
+      pixelY * widthOriginal + pixelX;
+
+
+    let z = raster[indice];
+
+
+    if (!Number.isFinite(z) || z <= -9990) {
+
+      posiciones.setZ(i, -500);
+
+    }
+
+    else {
+
+      posiciones.setZ(
+        i,
+        (z - elevMin) * exageracionVertical
+      );
+
+    }
+
+  }
+
+
+  geometry.computeVertexNormals();
+
+
+  const material = new THREE.MeshStandardMaterial({
+
+    color: 0x70845a,
+
+    roughness: 0.9,
+
+    metalness: 0,
+
+    side: THREE.DoubleSide
+
+  });
+
+
+  const terreno = new THREE.Mesh(
+    geometry,
+    material
+  );
+
+
+  scene.add(terreno);
+
+
+  // --------------------------------------------------
+  // GUARDAR INFORMACIÓN DEL DEM
+  // --------------------------------------------------
+
+  window.demInfo = {
+
+    bbox,
+
+    elevMin,
+
+    elevMax,
+
+    anchoTerreno,
+
+    altoTerreno
+
+  };
+
+
+  estado.innerText =
+    "DEM cargado · cargando lago...";
+
+
+  await cargarLago();
+
+
+  estado.innerText =
+    "Visor 3D listo";
+
+}
+
+
+// --------------------------------------------------
+// CARGAR LAGO
+// --------------------------------------------------
+
+async function cargarLago() {
+
+  const response = await fetch(
+    "data/lago_ajustado_dem.geojson"
+  );
+
+  const geojson = await response.json();
+
+
+  const {
+    bbox,
+    elevMin,
+    anchoTerreno,
+    altoTerreno
+  } = window.demInfo;
+
+
+  const centroX =
+    (bbox[0] + bbox[2]) / 2;
+
+  const centroY =
+    (bbox[1] + bbox[3]) / 2;
+
+
+  function convertirCoordenada(coord) {
+
+    const lon = coord[0];
+    const lat = coord[1];
+
+
+    const proyectada =
+      proj4("EPSG:4326", "GTM", [lon, lat]);
+
+
+    return new THREE.Vector2(
+
+      proyectada[0] - centroX,
+
+      proyectada[1] - centroY
+
+    );
+
+  }
+
+
+  for (const feature of geojson.features) {
+
+    let poligonos = [];
+
+
+    if (feature.geometry.type === "Polygon") {
+
+      poligonos = [
+        feature.geometry.coordinates
+      ];
+
+    }
+
+
+    else if (
+      feature.geometry.type === "MultiPolygon"
+    ) {
+
+      poligonos =
+        feature.geometry.coordinates;
+
+    }
+
+
+    for (const poligono of poligonos) {
+
+      const exterior =
+        poligono[0].map(convertirCoordenada);
+
+
+      const shape =
+        new THREE.Shape(exterior);
+
+
+      const geometry =
+        new THREE.ShapeGeometry(shape);
+
+
+      const material =
+        new THREE.MeshStandardMaterial({
+
+          color: 0x1676a8,
+
+          transparent: true,
+
+          opacity: 0.85,
+
+          roughness: 0.35,
+
+          metalness: 0.05,
+
+          side: THREE.DoubleSide
+
+        });
+
+
+      const lago =
+        new THREE.Mesh(
+          geometry,
+          material
+        );
+
+
+      // Nivel aproximado del lago
+      // después lo afinaremos con nuestros datos
+
+      const nivelLago =
+        (1560 - elevMin) * 2.0;
+
+
+      lago.position.z =
+        nivelLago + 5;
+
+
+      scene.add(lago);
+
+    }
+
+  }
+
+}
+
+
+// --------------------------------------------------
+// REDIMENSIONAR
+// --------------------------------------------------
+
+window.addEventListener(
+  "resize",
+  () => {
+
+    camera.aspect =
+      window.innerWidth /
+      window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
+
+
+// --------------------------------------------------
+// ANIMACIÓN
+// --------------------------------------------------
+
+function animate() {
+
+  requestAnimationFrame(animate);
+
+  controls.update();
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+}
+
+animate();
+
+
+// --------------------------------------------------
+// INICIAR
+// --------------------------------------------------
+
+cargarDEM().catch(error => {
+
+  console.error(error);
+
+  estado.innerText =
+    "Error cargando los datos";
+
+});
+
+</script>
+
+</body>
+</html>
