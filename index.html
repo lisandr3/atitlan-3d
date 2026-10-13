@@ -14,6 +14,9 @@
     --paper: #f7f9fa;
     --line: rgba(15, 61, 94, 0.16);
     --dock-h: 74px;
+    --bio-shelf-h: 205px;
+    --mobile-nav-h: 66px;
+    --mobile-info-h: 36dvh;
 }
 
 * { box-sizing: border-box; }
@@ -42,7 +45,18 @@ button { font: inherit; }
 }
 body.info-open #stage { right: var(--rail-w); }
 
-#visor { position: absolute; inset: 0; }
+#visor {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    overflow: hidden;
+}
+/* En biodiversidad, la franja superior queda físicamente reservada a las
+   cinco especies. El canvas empieza debajo: las fotografías nunca tapan
+   el relieve. */
+body.bio-open #visor { top: var(--bio-shelf-h); }
 #visor canvas {
     display: block;
     width: 100%;
@@ -288,29 +302,27 @@ body.info-open #infoRail { transform: translateX(0); }
 #calloutCore { fill: var(--navy); }
 
 /* =========================================================
-   GALERÍA DE ESPECIES — 5 IMÁGENES POR CATEGORÍA
-   Se usa únicamente para las escenas 9–13. Las imágenes pueden
-   tener fondo transparente y flotan sobre el visor sin tarjeta.
+   FRANJA FIJA DE ESPECIES — 5 IMÁGENES POR CATEGORÍA
+   Esta franja ocupa espacio propio por encima del canvas 3D.
+   No se superpone al terreno ni participa en el callout.
 ========================================================= */
 #rockGallery {
     position: absolute;
-    top: 74px;
+    top: 55px;
     left: 50%;
     z-index: 68;
-    width: min(760px, calc(100% - 52px));
+    width: min(900px, calc(100% - 48px));
+    min-height: 138px;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: end;
-    gap: 10px;
-    transform: translateX(-50%) translateY(-8px);
+    gap: 14px;
+    padding: 4px 8px 8px;
+    transform: translateX(-50%) translateY(-6px);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 260ms ease, transform 320ms cubic-bezier(.2,.75,.25,1), visibility 0s linear 320ms;
-}
-body.info-open #rockGallery {
-    left: calc((100vw - var(--rail-w)) / 2);
-    width: min(690px, calc(100vw - var(--rail-w) - 48px));
+    transition: opacity 220ms ease, transform 260ms ease, visibility 0s linear 260ms;
 }
 #rockGallery.is-visible {
     opacity: 1;
@@ -333,43 +345,44 @@ body.info-open #rockGallery {
 .rock-sample img {
     display: block;
     width: 100%;
-    height: 104px;
+    height: 105px;
     object-fit: contain;
+    object-position: center bottom;
     background: transparent;
     border: 0;
-    filter: drop-shadow(0 9px 12px rgba(15,42,57,.24));
-    transition: opacity 220ms ease;
+    filter: drop-shadow(0 8px 10px rgba(15,42,57,.20));
+    transition: opacity 180ms ease;
 }
-.rock-sample.is-loading img { opacity: .35; }
+.rock-sample.is-loading img { opacity: .30; }
 .rock-sample.is-missing .species-placeholder { display: grid; }
 .species-placeholder {
     display: none;
-    width: 76px;
-    height: 76px;
+    width: 72px;
+    height: 72px;
     place-items: center;
-    border: 1px dashed rgba(15,61,94,.34);
+    border: 1px dashed rgba(15,61,94,.28);
     border-radius: 50%;
-    color: rgba(15,61,94,.72);
-    background: rgba(255,255,255,.38);
-    font-size: 11px;
+    color: rgba(15,61,94,.68);
+    background: rgba(255,255,255,.25);
+    font-size: 10px;
     font-weight: 800;
     text-align: center;
     line-height: 1.05;
 }
 .rock-sample figcaption {
-    margin-top: 3px;
+    margin-top: 2px;
     color: #0f3651;
-    font-size: 11px;
-    line-height: 1.12;
+    font-size: 10.5px;
+    line-height: 1.08;
     font-weight: 850;
     text-align: center;
-    text-shadow: 0 1px 0 #fff, 0 2px 8px rgba(255,255,255,.95);
+    text-shadow: 0 1px 0 #fff, 0 2px 8px rgba(255,255,255,.9);
 }
 .rock-sample figcaption em {
     display: block;
     margin-top: 2px;
     color: #405663;
-    font-size: 9.5px;
+    font-size: 8.8px;
     font-weight: 650;
 }
 .species-status {
@@ -377,14 +390,13 @@ body.info-open #rockGallery {
     margin-top: 3px;
     padding: 2px 6px;
     border-radius: 999px;
-    background: rgba(15,61,94,.10);
+    background: rgba(15,61,94,.09);
     color: #123f5c;
-    font-size: 8.5px;
-    line-height: 1.1;
+    font-size: 8px;
+    line-height: 1.05;
     font-weight: 850;
-    letter-spacing: .02em;
 }
-.species-status.threat { background: rgba(143,38,42,.11); color: #7f2328; }
+.species-status.threat { background: rgba(143,38,42,.10); color: #7f2328; }
 
 /* =========================================================
    RÓTULOS 3D Y LEYENDA DE PISOS ALTITUDINALES
@@ -481,97 +493,174 @@ body.info-open #rockGallery {
 
 /* =========================================================
    RESPONSIVE / TELÉFONO
+
+   Arquitectura móvil fija:
+   1) cabecera; 2) franja de especies (solo 9–13);
+   3) visor 3D; 4) ficha desplazable; 5) dock táctil.
+   Cada sección reserva su espacio: no se apilan sobre el modelo.
 ========================================================= */
 @media (max-width: 900px) {
-    :root { --rail-w: 100vw; }
-    #mainHeader { top: 10px; width: calc(100% - 28px); }
-    #mainHeader h1 { font-size: clamp(16px, 4.4vw, 21px); }
-    #estado { margin-top: 4px; font-size: 10.5px; }
-
-    body.info-open #stage {
-        right: 0;
-        bottom: 50dvh;
+    :root {
+        --rail-w: 100vw;
+        --bio-shelf-h: 174px;
+        --mobile-nav-h: 66px;
+        --mobile-info-h: 35dvh;
     }
+
+    #mainHeader { top: 8px; width: calc(100% - 24px); }
+    #mainHeader h1 { font-size: clamp(15px, 4.1vw, 19px); line-height: 1.06; }
+    #estado { margin-top: 3px; font-size: 9.5px; }
+
+    /* El canvas nunca queda detrás del título ni del dock. */
+    #visor {
+        top: 48px;
+        bottom: var(--mobile-nav-h);
+    }
+    body.bio-open #visor { top: var(--bio-shelf-h); }
+    body.info-open #stage { right: 0; bottom: 0; }
+    body.info-open #visor {
+        bottom: calc(var(--mobile-nav-h) + var(--mobile-info-h));
+    }
+
+    /* Ficha = sección fija entre el visor y el dock. */
     #infoRail {
         top: auto;
         left: 0;
         right: 0;
+        bottom: var(--mobile-nav-h);
         width: 100vw;
-        height: 50dvh;
-        padding: 14px 18px 22px;
+        height: var(--mobile-info-h);
+        padding: 10px 14px 14px;
         border-left: 0;
         border-top: 1px solid var(--line);
-        border-radius: 20px 20px 0 0;
-        transform: translateY(100%);
-        box-shadow: 0 -14px 32px rgba(15,42,57,.16);
+        border-radius: 18px 18px 0 0;
+        transform: translateY(calc(100% + 8px));
+        box-shadow: 0 -10px 28px rgba(15,42,57,.15);
     }
     body.info-open #infoRail { transform: translateY(0); }
-    #infoCard { padding: 2px 2px 18px; }
-    #infoTitulo { font-size: 18px; margin-bottom: 14px; padding: 0 24px; }
-    .info-section { margin-top: 15px; padding-top: 14px; }
-    .info-section h4 { font-size: 14px; }
-    .info-section p { font-size: 13.5px; line-height: 1.58; text-align: left; }
+    #infoCard { padding: 0 2px 12px; }
+    #cerrarInfo { width: 34px; height: 34px; line-height: 30px; font-size: 20px; }
+    #infoCodigo { margin: 3px auto 6px; padding: 4px 9px; font-size: 10px; }
+    #infoTitulo { font-size: 16px; margin-bottom: 10px; padding: 0 24px; max-width: 100%; }
+    .info-section { margin-top: 10px; padding-top: 10px; }
+    .info-section h4 { margin-bottom: 7px; font-size: 12.5px; }
+    .info-section p { font-size: 12.5px; line-height: 1.50; text-align: left; }
+    .bio-species-list { font-size: 11.5px; line-height: 1.42; }
+    .bio-species-list .sp { margin-bottom: 8px; padding-bottom: 7px; }
 
+    /* Galería como carrusel horizontal fijo. Las fotos conservan tamaño
+       legible en lugar de comprimirse en cinco columnas minúsculas. */
     #rockGallery {
-        top: 56px;
-        left: 50%;
-        right: auto;
-        width: calc(100vw - 14px);
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 3px;
-        transform: translateX(-50%) translateY(-3px);
+        top: 47px;
+        left: 0;
+        width: 100%;
+        min-height: 120px;
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        padding: 4px 10px 8px;
+        transform: translateY(-4px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        pointer-events: auto;
+        touch-action: pan-x;
     }
-    body.info-open #rockGallery { left: 50%; width: calc(100vw - 14px); }
-    #rockGallery.is-visible { transform: translateX(-50%) translateY(0); }
-    .rock-sample img { height: min(72px, 10.5vh); }
-    .rock-sample figcaption { font-size: 8.7px; }
-    .rock-sample figcaption em { font-size: 7.8px; }
-    .species-status { font-size: 7.4px; padding: 1px 4px; }
-    .species-placeholder { width: 52px; height: 52px; font-size: 8px; }
+    #rockGallery::-webkit-scrollbar { display: none; }
+    #rockGallery.is-visible { transform: translateY(0); }
+    .rock-sample { flex: 0 0 92px; scroll-snap-align: center; }
+    .rock-sample img { width: 92px; height: 76px; }
+    .rock-sample figcaption { font-size: 8.7px; line-height: 1.05; }
+    .rock-sample figcaption em { font-size: 7.5px; }
+    .species-status { font-size: 7px; padding: 1px 4px; }
+    .species-placeholder { width: 56px; height: 56px; font-size: 8px; }
 
+    /* Leyenda compacta dentro del área 3D, sin tapar media pantalla. */
     #altLegend {
-        left: 7px;
-        top: 164px;
-        width: min(190px, 54vw);
-        padding: 7px 8px;
+        left: 6px;
+        right: 6px;
+        top: calc(var(--bio-shelf-h) + 4px);
+        width: auto;
+        padding: 4px 6px;
+        border-radius: 10px;
     }
-    #altLegendTitle { font-size: 10px; margin-bottom: 4px; }
-    .alt-row { font-size: 8.8px; margin: 3px 0; }
-    .floor-label { font-size: 8.5px; padding: 4px 6px; }
+    #altLegendTitle { display: none; }
+    #altLegendRows {
+        display: flex;
+        gap: 7px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    #altLegendRows::-webkit-scrollbar { display: none; }
+    .alt-row {
+        flex: 0 0 auto;
+        grid-template-columns: 8px auto;
+        gap: 4px;
+        margin: 0;
+        white-space: nowrap;
+        font-size: 7.5px;
+        line-height: 1;
+    }
+    .alt-swatch { width: 8px; height: 8px; }
+    .alt-name { display: none; }
+    .floor-label { font-size: 7.5px; padding: 3px 5px; }
 
+    /* Dock táctil de una sola fila desplazable: botones grandes, sin
+       ocupar dos filas del modelo. */
     #sceneDock {
-        left: 50%;
-        width: calc(100vw - 12px);
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 5px 4px;
-        padding: 8px 8px;
-        border-radius: 22px;
+        left: 6px;
+        right: 6px;
+        bottom: max(6px, env(safe-area-inset-bottom));
+        width: auto;
+        height: 54px;
+        transform: none;
+        display: flex;
+        justify-content: flex-start;
+        gap: 6px;
+        padding: 7px 9px;
+        border-radius: 18px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        touch-action: pan-x;
     }
+    #sceneDock::-webkit-scrollbar { display: none; }
     .scene-key {
-        width: 38px;
-        height: 38px;
-        min-width: 38px;
-        justify-self: center;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        flex: 0 0 40px;
         font-size: 11px;
     }
     .scene-key::after { display: none; }
-    body.info-open #sceneDock { left: 50%; bottom: calc(50dvh + 10px); }
+    .scene-key[data-key="8"],
+    .scene-key[data-key="9"],
+    .scene-key[data-key="12"] { margin-left: 5px; }
+    body.info-open #sceneDock { left: 6px; bottom: max(6px, env(safe-area-inset-bottom)); }
+
+    /* En móvil el callout solo se usa para geología y termina en el borde
+       superior de la ficha; biodiversidad ya no utiliza callout. */
+    #calloutLine { stroke-width: 1.7; }
 }
 
 @media (max-width: 430px) {
-    #sceneDock { width: calc(100vw - 8px); gap: 4px 2px; padding: 7px 5px; }
-    .scene-key { width: 36px; height: 36px; min-width: 36px; font-size: 10.5px; }
-    body.info-open #sceneDock { bottom: calc(50dvh + 6px); }
-    #rockGallery { top: 54px; }
-    .rock-sample img { height: 62px; }
-    #altLegend { top: 154px; }
+    :root { --bio-shelf-h: 166px; --mobile-info-h: 34dvh; }
+    #mainHeader h1 { font-size: 15px; }
+    #rockGallery { top: 45px; gap: 7px; padding-inline: 8px; }
+    .rock-sample { flex-basis: 86px; }
+    .rock-sample img { width: 86px; height: 70px; }
+    #sceneDock { height: 52px; padding: 6px 8px; }
+    .scene-key { width: 38px; height: 38px; min-width: 38px; flex-basis: 38px; font-size: 10.5px; }
 }
 
 @media (max-height: 650px) and (max-width: 900px) {
-    body.info-open #stage { bottom: 56dvh; }
-    #infoRail { height: 56dvh; }
-    body.info-open #sceneDock { bottom: calc(56dvh + 6px); }
+    :root { --bio-shelf-h: 150px; --mobile-info-h: 39dvh; --mobile-nav-h: 60px; }
+    #rockGallery { top: 42px; min-height: 102px; }
+    .rock-sample img { height: 58px; }
+    #visor { top: 42px; }
+    #sceneDock { height: 48px; }
+    .scene-key { width: 35px; height: 35px; min-width: 35px; flex-basis: 35px; }
 }
 </style>
 
@@ -586,10 +675,9 @@ body.info-open #rockGallery {
         <div id="estado">Cargando modelo 3D…</div>
     </header>
 
-    <!-- Galería dinámica para las escenas de biodiversidad 9–13.
-         Convención recomendada en data/: 9_1.png...9_5.png,
-         10_1.png...10_5.png, 11_1.png...11_5.png,
-         12_1.png...12_5.png y 13_1.png...13_5.png. -->
+    <!-- Franja dinámica de biodiversidad. En escritorio ocupa una banda
+         reservada sobre el canvas; en teléfono se vuelve carrusel horizontal.
+         También admite archivos nombrados por el nombre científico. -->
     <div id="rockGallery" aria-hidden="true"></div>
     <div id="floorLabels" aria-hidden="true"></div>
     <div id="altLegend" aria-hidden="true">
@@ -736,11 +824,11 @@ const BIO_ESCENAS = {
         titulo: "Mamíferos",
         resumen: "La mastofauna de Atitlán combina especies de bosques premontanos y montanos con pequeños mamíferos de distribución mesoamericana restringida. La lectura por pisos es orientativa: muchas especies atraviesan varias bandas y dependen más de la continuidad del bosque, alimento, refugio y presión de cacería que de una cota aislada.",
         especies: [
-            { nombre: "Mono araña", cientifico: "Ateles geoffroyi", estado: "UICN EN", amenaza: true, pisos: [1,2], nota: "Primate nativo amenazado; el Plan Maestro lo registra entre los mamíferos de conservación prioritaria en Atitlán." },
-            { nombre: "Venado cola blanca", cientifico: "Odocoileus virginianus", estado: "CONAP vulnerable", amenaza: true, pisos: [1,2,3], nota: "Especie nativa asociada a mosaicos de bosque y áreas abiertas; localmente es sensible a la cacería." },
-            { nombre: "Murciélago frugívoro azteca", cientifico: "Dermanura azteca", estado: "Nativo mesoamericano", amenaza: false, pisos: [2,3,4], nota: "Registrado para Atitlán como taxón de distribución regional restringida; contribuye a dispersión de semillas." },
-            { nombre: "Ratón venado guatemalteco", cientifico: "Peromyscus guatemalensis", estado: "UICN LC · nativo", amenaza: false, pisos: [2,3,4,5], nota: "Roedor de bosques húmedos montanos; su rango conocido alcanza aproximadamente 1,300–3,000 m." },
-            { nombre: "Musaraña de Goodwin", cientifico: "Cryptotis goodwini", estado: "UICN LC · nativa", amenaza: false, pisos: [4,5], nota: "Pequeño mamífero de tierras altas citado para Atitlán y característico de ambientes montanos frescos." }
+            { nombre: "Ratón venado guatemalteco", cientifico: "Peromyscus guatemalensis", archivo: "Peromyscus_guatemalensis.jpg", estado: "UICN LC · nativo", amenaza: false, pisos: [2,3,4,5], nota: "Roedor de bosques húmedos montanos; su rango conocido alcanza aproximadamente 1,300–3,000 m." },
+            { nombre: "Musaraña de Goodwin", cientifico: "Cryptotis goodwini", archivo: "Cryptotis_goodwini.jpg", estado: "UICN LC · nativa", amenaza: false, pisos: [4,5], nota: "Pequeño mamífero de tierras altas citado para Atitlán y característico de ambientes montanos frescos." },
+            { nombre: "Murciélago frugívoro azteca", cientifico: "Dermanura azteca", archivo: "Dermanura_azteca.jpg", estado: "Nativo mesoamericano", amenaza: false, pisos: [2,3,4], nota: "Registrado para Atitlán como taxón de distribución regional restringida; contribuye a dispersión de semillas." },
+            { nombre: "Venado cola blanca", cientifico: "Odocoileus virginianus", archivo: "Odocoileus_virginianus.jpg", estado: "CONAP vulnerable", amenaza: true, pisos: [1,2,3], nota: "Especie nativa asociada a mosaicos de bosque y áreas abiertas; localmente es sensible a la cacería." },
+            { nombre: "Mono araña de Geoffroy", cientifico: "Ateles geoffroyi vellerosus", archivo: "Ateles_geoffroyi_vellerosus.jpg", estado: "UICN EN", amenaza: true, pisos: [1,2], nota: "Primate nativo amenazado; el Plan Maestro lo registra entre los mamíferos de conservación prioritaria en Atitlán." }
         ]
     },
     "10": {
@@ -1807,7 +1895,7 @@ function crearLeyendaPisos() {
     for (const piso of PISOS) {
         const row = document.createElement("div");
         row.className = "alt-row";
-        row.innerHTML = `<span class="alt-swatch" style="background:${piso.color}"></span><span><b>Piso ${piso.id}</b> · ${piso.rango}<br>${piso.nombre}</span>`;
+        row.innerHTML = `<span class="alt-swatch" style="background:${piso.color}"></span><span><b>P${piso.id}</b> · ${piso.rango}<span class="alt-name"><br>${piso.nombre}</span></span>`;
         altLegendRows.appendChild(row);
     }
 }
@@ -1903,10 +1991,32 @@ function slugEspecie(texto) {
     return String(texto).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function nombreCientificoArchivo(texto) {
+    return String(texto)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Za-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+}
+
 function rutasEspecie(tecla, indice, especie) {
-    const base = [`${tecla}_${indice}`, `${tecla}-${indice}`, slugEspecie(especie.cientifico), slugEspecie(especie.nombre)];
-    const ext = ["png", "PNG", "webp", "WEBP", "jpg", "JPG", "jpeg", "JPEG"];
     const urls = [];
+
+    // 1) Si existe un nombre exacto definido, siempre se prueba primero.
+    //    Así se cargan exactamente los archivos ya subidos a /data.
+    if (especie.archivo) {
+        urls.push(new URL(`data/${especie.archivo}`, document.baseURI).href);
+    }
+
+    // 2) Convenciones alternativas para las próximas categorías.
+    const base = [
+        nombreCientificoArchivo(especie.cientifico),
+        `${tecla}_${indice}`,
+        `${tecla}-${indice}`,
+        slugEspecie(especie.cientifico),
+        slugEspecie(especie.nombre)
+    ];
+    const ext = ["jpg", "JPG", "jpeg", "JPEG", "png", "PNG", "webp", "WEBP"];
     for (const b of base) for (const e of ext) urls.push(new URL(`data/${b}.${e}`, document.baseURI).href);
     return [...new Set(urls)];
 }
@@ -1992,6 +2102,7 @@ function restaurarLagoParaEcologia() {
 
 function salirModoEcologico(restaurarMaterial = true) {
     modoEcologico = false;
+    document.body.classList.remove("bio-open");
     mostrarPisos(false);
     mostrarGaleriaEspecies(null);
     if (aguaMaterial) aguaMaterial.opacity = 0.80;
@@ -1999,9 +2110,24 @@ function salirModoEcologico(restaurarMaterial = true) {
 }
 
 function camaraEcologica() {
-    const maxDim = Math.max(anchoTerreno, altoTerreno);
-    const pos = new THREE.Vector3(maxDim * .58, -maxDim * .78, maxDim * .48);
-    const target = new THREE.Vector3(0, 0, (elevMax - elevMin) * EXAGERACION_VERTICAL * .17);
+    // Encuadre panorámico calculado a partir del tamaño real del DEM y del
+    // viewport disponible. En teléfono el FOV horizontal es más estrecho,
+    // por lo que la cámara se aleja automáticamente y evita recortes.
+    const rect = visor.getBoundingClientRect();
+    const aspect = Math.max(0.35, rect.width / Math.max(1, rect.height));
+    const vFov = THREE.MathUtils.degToRad(camera.fov);
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+    const limiteFov = Math.max(THREE.MathUtils.degToRad(16), Math.min(vFov, hFov));
+
+    const zSpan = Math.max(1, (elevMax - elevMin) * EXAGERACION_VERTICAL);
+    const radio = Math.hypot(anchoTerreno * 0.5, altoTerreno * 0.5, zSpan * 0.5);
+    const distancia = radio / Math.max(0.16, Math.sin(limiteFov * 0.5)) * 1.12;
+
+    // Vista oblicua limpia desde el sur-sureste. Al reservar la franja de
+    // especies fuera del canvas, toda la cuenca queda debajo de las fotos.
+    const direccion = new THREE.Vector3(0.54, -0.76, 0.48).normalize();
+    const target = new THREE.Vector3(0, 0, zSpan * 0.16);
+    const pos = target.clone().addScaledVector(direccion, distancia);
     return { pos, target };
 }
 
@@ -2011,6 +2137,7 @@ function activarEcologia(tecla) {
 
     restaurarLagoParaEcologia();
     modoEcologico = true;
+    document.body.classList.add("bio-open");
     terreno.material = materialPisos;
     puntoCallout3D = null;
     ocultarCallout();
@@ -2018,9 +2145,6 @@ function activarEcologia(tecla) {
     marcarBoton(tecla);
     mostrarPisos(true);
     mostrarGaleriaEspecies(tecla);
-
-    const vista = camaraEcologica();
-    animarCamara(vista.pos, vista.target);
 
     abrirInfo({
         codigo: String(tecla),
@@ -2033,6 +2157,14 @@ Base ecológica: Plan Maestro RUMCLA (CONAP) y estudio de vegetación del volcá
         seccion1: "Distribución por pisos altitudinales",
         seccion2: "Cinco especies representativas",
         conCallout: false
+    });
+
+    // La ficha lateral ya está abierta y la franja superior ya está reservada:
+    // calculamos el encuadre con el espacio que realmente quedó para el DEM.
+    requestAnimationFrame(() => {
+        ajustarRenderer();
+        const vista = camaraEcologica();
+        animarCamara(vista.pos, vista.target);
     });
 
     estado.textContent = `${tecla} · ${cat.titulo} · pisos altitudinales`;
@@ -2327,15 +2459,16 @@ for (const btn of sceneButtons) {
    RESIZE
 ============================================================ */
 function ajustarRenderer() {
-    const w = Math.max(1, stage.clientWidth);
-    const h = Math.max(1, stage.clientHeight);
+    const rect = visor.getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h, false);
 }
 
 window.addEventListener("resize", ajustarRenderer);
-new ResizeObserver(ajustarRenderer).observe(stage);
+new ResizeObserver(ajustarRenderer).observe(visor);
 ajustarRenderer();
 
 /* ============================================================
