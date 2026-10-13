@@ -56,7 +56,7 @@ body.info-open #stage { right: var(--rail-w); }
 /* En biodiversidad, la franja superior queda físicamente reservada a las
    cinco especies. El canvas empieza debajo: las fotografías nunca tapan
    el relieve. */
-body.bio-open #visor { top: var(--bio-shelf-h); }
+body.gallery-open #visor { top: var(--bio-shelf-h); }
 #visor canvas {
     display: block;
     width: 100%;
@@ -314,7 +314,8 @@ body.info-open #infoRail { transform: translateX(0); }
     width: min(900px, calc(100% - 48px));
     min-height: 138px;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--gallery-count, 5), minmax(90px, 150px));
+    justify-content: center;
     align-items: end;
     gap: 14px;
     padding: 4px 8px 8px;
@@ -352,6 +353,11 @@ body.info-open #infoRail { transform: translateX(0); }
     border: 0;
     filter: drop-shadow(0 8px 10px rgba(15,42,57,.20));
     transition: opacity 180ms ease;
+}
+.rock-sample img.jpeg-cutout {
+    /* JPG no conserva transparencia. Multiply hace que el blanco se funda
+       con el fondo del visor hasta que se reemplace por PNG/WebP transparente. */
+    mix-blend-mode: multiply;
 }
 .rock-sample.is-loading img { opacity: .30; }
 .rock-sample.is-missing .species-placeholder { display: grid; }
@@ -430,14 +436,15 @@ body.info-open #infoRail { transform: translateX(0); }
     top: 82px;
     z-index: 64;
     display: none;
-    width: 220px;
-    padding: 10px 12px;
-    border-radius: 13px;
-    background: rgba(248,250,251,.88);
-    border: 1px solid rgba(15,61,94,.14);
-    box-shadow: 0 8px 24px rgba(15,42,57,.12);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    width: 245px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    text-shadow: 0 1px 0 rgba(255,255,255,.95), 0 2px 8px rgba(255,255,255,.8);
 }
 #altLegend.is-visible { display: block; }
 #altLegendTitle {
@@ -516,7 +523,7 @@ body.info-open #infoRail { transform: translateX(0); }
         top: 48px;
         bottom: var(--mobile-nav-h);
     }
-    body.bio-open #visor { top: var(--bio-shelf-h); }
+    body.gallery-open #visor { top: var(--bio-shelf-h); }
     body.info-open #stage { right: 0; bottom: 0; }
     body.info-open #visor {
         bottom: calc(var(--mobile-nav-h) + var(--mobile-info-h));
@@ -582,8 +589,11 @@ body.info-open #infoRail { transform: translateX(0); }
         right: 6px;
         top: calc(var(--bio-shelf-h) + 4px);
         width: auto;
-        padding: 4px 6px;
-        border-radius: 10px;
+        padding: 2px 4px;
+        border-radius: 0;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
     }
     #altLegendTitle { display: none; }
     #altLegendRows {
@@ -705,13 +715,13 @@ body.info-open #infoRail { transform: translateX(0); }
 </aside>
 
 <nav id="sceneDock" aria-label="Escenas del visor">
-    <button class="scene-key" type="button" data-key="1" data-label="Geología · Qpa4" aria-label="Escena 1, geología Qpa4">1</button>
-    <button class="scene-key" type="button" data-key="2" data-label="Geología · Qpf3" aria-label="Escena 2, geología Qpf3">2</button>
-    <button class="scene-key" type="button" data-key="3" data-label="Geología · Tmt4" aria-label="Escena 3, geología Tmt4">3</button>
-    <button class="scene-key" type="button" data-key="4" data-label="Geología · Tcf2" aria-label="Escena 4, geología Tcf2">4</button>
-    <button class="scene-key" type="button" data-key="5" data-label="Geología · QTa" aria-label="Escena 5, geología QTa">5</button>
-    <button class="scene-key" type="button" data-key="6" data-label="Geología · Qa" aria-label="Escena 6, geología Qa">6</button>
-    <button class="scene-key" type="button" data-key="7" data-label="Geología · Tg" aria-label="Escena 7, geología Tg">7</button>
+    <button class="scene-key" type="button" data-key="1" data-label="Geología — Qpa4" aria-label="Escena 1, geología Qpa4">1</button>
+    <button class="scene-key" type="button" data-key="2" data-label="Geología — Qpf3" aria-label="Escena 2, geología Qpf3">2</button>
+    <button class="scene-key" type="button" data-key="3" data-label="Geología — Tmt4" aria-label="Escena 3, geología Tmt4">3</button>
+    <button class="scene-key" type="button" data-key="4" data-label="Geología — Tcf2" aria-label="Escena 4, geología Tcf2">4</button>
+    <button class="scene-key" type="button" data-key="5" data-label="Geología — QTa" aria-label="Escena 5, geología QTa">5</button>
+    <button class="scene-key" type="button" data-key="6" data-label="Geología — Qa" aria-label="Escena 6, geología Qa">6</button>
+    <button class="scene-key" type="button" data-key="7" data-label="Geología — Tg" aria-label="Escena 7, geología Tg">7</button>
     <button class="scene-key" type="button" data-key="8" data-label="Lago / lecho" aria-label="Escena 8, vaciar o llenar lago">8</button>
     <button class="scene-key" type="button" data-key="9" data-label="Mamíferos" aria-label="Escena 9, mamíferos">9</button>
     <button class="scene-key" type="button" data-key="10" data-label="Anfibios" aria-label="Escena 10, anfibios">10</button>
@@ -812,69 +822,84 @@ const ESCENAS = {
    perturbación modifican la distribución real de cada especie.
 ============================================================ */
 const PISOS = [
-    { id: 1, min: -Infinity, max: 1800, color: "#d6b57c", nombre: "Litoral y asociación xérica", rango: "≤ 1,800 m" },
-    { id: 2, min: 1800, max: 2400, color: "#a8c68b", nombre: "Montano bajo y bosque mixto", rango: "1,800–2,400 m" },
-    { id: 3, min: 2400, max: 2600, color: "#78aa78", nombre: "Montano medio", rango: "2,400–2,600 m" },
-    { id: 4, min: 2600, max: 2800, color: "#4f8b72", nombre: "Montano húmedo / nuboso", rango: "2,600–2,800 m" },
-    { id: 5, min: 2800, max: Infinity, color: "#365f67", nombre: "Montano alto y cumbres", rango: "≥ 2,800 m" }
+    { id: 1, min: -Infinity, max: 1800, color: "#d6b57c", nombre: "Litoral y asociación xérica", rango: "hasta 1,800 m" },
+    { id: 2, min: 1800, max: 2400, color: "#a8c68b", nombre: "Montano bajo y bosque mixto", rango: "1,800 a 2,400 m" },
+    { id: 3, min: 2400, max: 2600, color: "#78aa78", nombre: "Montano medio", rango: "2,400 a 2,600 m" },
+    { id: 4, min: 2600, max: 2800, color: "#4f8b72", nombre: "Montano húmedo y nuboso", rango: "2,600 a 2,800 m" },
+    { id: 5, min: 2800, max: Infinity, color: "#365f67", nombre: "Montano alto y cumbres", rango: "desde 2,800 m" }
 ];
 
 const BIO_ESCENAS = {
     "9": {
         titulo: "Mamíferos",
-        resumen: "La mastofauna de Atitlán combina especies de bosques premontanos y montanos con pequeños mamíferos de distribución mesoamericana restringida. La lectura por pisos es orientativa: muchas especies atraviesan varias bandas y dependen más de la continuidad del bosque, alimento, refugio y presión de cacería que de una cota aislada.",
+        resumen: "La mastofauna de Atitlán combina especies de bosques premontanos y montanos con pequeños mamíferos de distribución mesoamericana restringida. La lectura altitudinal es orientativa: muchas especies ocupan más de una franja y también dependen de la continuidad del bosque, el alimento, el refugio y la presión de cacería.",
         especies: [
-            { nombre: "Ratón venado guatemalteco", cientifico: "Peromyscus guatemalensis", archivo: "Peromyscus_guatemalensis.jpg", estado: "UICN LC · nativo", amenaza: false, pisos: [2,3,4,5], nota: "Roedor de bosques húmedos montanos; su rango conocido alcanza aproximadamente 1,300–3,000 m." },
-            { nombre: "Musaraña de Goodwin", cientifico: "Cryptotis goodwini", archivo: "Cryptotis_goodwini.jpg", estado: "UICN LC · nativa", amenaza: false, pisos: [4,5], nota: "Pequeño mamífero de tierras altas citado para Atitlán y característico de ambientes montanos frescos." },
-            { nombre: "Murciélago frugívoro azteca", cientifico: "Dermanura azteca", archivo: "Dermanura_azteca.jpg", estado: "Nativo mesoamericano", amenaza: false, pisos: [2,3,4], nota: "Registrado para Atitlán como taxón de distribución regional restringida; contribuye a dispersión de semillas." },
-            { nombre: "Venado cola blanca", cientifico: "Odocoileus virginianus", archivo: "Odocoileus_virginianus.jpg", estado: "CONAP vulnerable", amenaza: true, pisos: [1,2,3], nota: "Especie nativa asociada a mosaicos de bosque y áreas abiertas; localmente es sensible a la cacería." },
-            { nombre: "Mono araña de Geoffroy", cientifico: "Ateles geoffroyi vellerosus", archivo: "Ateles_geoffroyi_vellerosus.jpg", estado: "UICN EN", amenaza: true, pisos: [1,2], nota: "Primate nativo amenazado; el Plan Maestro lo registra entre los mamíferos de conservación prioritaria en Atitlán." }
+            { nombre: "Ratón venado guatemalteco", cientifico: "Peromyscus guatemalensis", archivo: "Peromyscus_guatemalensis.jpg", estado: "UICN: Preocupación menor", amenaza: false, pisos: [2,3,4,5], nota: "Roedor nativo de bosques húmedos montanos. Su distribución conocida incluye elevaciones aproximadas entre 1,300 y 3,000 m." },
+            { nombre: "Musaraña de Goodwin", cientifico: "Cryptotis goodwini", archivo: "Cryptotis_goodwini.jpg", estado: "UICN: Preocupación menor", amenaza: false, pisos: [4,5], nota: "Pequeño mamífero nativo de las tierras altas de Guatemala y México, asociado a ambientes montanos frescos y húmedos." },
+            { nombre: "Murciélago frugívoro azteca", cientifico: "Dermanura azteca", archivo: "Dermanura_azteca.jpg", estado: "UICN: Preocupación menor", amenaza: false, pisos: [2,3,4], nota: "Murciélago nativo mesoamericano que consume frutos y contribuye a la dispersión de semillas en bosques y paisajes con cobertura arbórea." },
+            { nombre: "Venado cola blanca", cientifico: "Odocoileus virginianus", archivo: "Odocoileus_virginianus.jpg", estado: "UICN: Preocupación menor", amenaza: false, pisos: [1,2,3], nota: "Mamífero nativo asociado a mosaicos de bosque, matorral y áreas abiertas. Localmente puede verse afectado por la cacería y la fragmentación del hábitat." },
+            { nombre: "Mono araña de Geoffroy", cientifico: "Ateles geoffroyi vellerosus", archivo: "Ateles_geoffroyi_vellerosus.jpg", estado: "UICN: En peligro", amenaza: true, pisos: [1,2], nota: "Primate nativo amenazado que necesita bosques continuos y copas conectadas para desplazarse, alimentarse y mantener poblaciones viables." }
         ]
     },
     "10": {
         titulo: "Anfibios",
-        resumen: "Los anfibios muestran una de las respuestas altitudinales más claras de la cuenca. Las salamandras de bosque húmedo y las ranas de montaña son especialmente sensibles a pérdida de cobertura, cambios microclimáticos y degradación de quebradas; por eso aquí se priorizan especies amenazadas registradas en la región volcánica de Atitlán.",
+        resumen: "Los anfibios muestran una respuesta muy marcada a la humedad y a la elevación. Las salamandras de bosque húmedo y las ranas de montaña son especialmente sensibles a la pérdida de cobertura, los cambios microclimáticos y la degradación de quebradas.",
         especies: [
-            { nombre: "Salamandra de Engelhardt", cientifico: "Bolitoglossa engelhardti", estado: "UICN EN", amenaza: true, pisos: [1,2], nota: "Rango global aproximado de 1,500–2,400 m; llega al volcán Atitlán y depende de bosque." },
-            { nombre: "Salamandra de patas amarillas", cientifico: "Bolitoglossa flavimembris", estado: "UICN EN", amenaza: true, pisos: [2], nota: "Conocida de volcanes del occidente de Guatemala, incluido Atitlán, aproximadamente entre 1,800 y 2,200 m." },
-            { nombre: "Salamandra de Franklin", cientifico: "Bolitoglossa franklini", estado: "UICN VU", amenaza: true, pisos: [2,3], nota: "Salamandra mesoamericana de bosques montanos; CONAP también la considera de alta prioridad nacional." },
-            { nombre: "Tlaconete de Goebel", cientifico: "Pseudoeurycea goebeli", estado: "UICN CR", amenaza: true, pisos: [3,4], nota: "Especie críticamente amenazada de bosques altos; su conservación depende de microhábitats húmedos y cobertura continua." },
-            { nombre: "Rana de dedos delgados", cientifico: "Plectrohyla glandulosa", estado: "UICN CR", amenaza: true, pisos: [4,5], nota: "Rana montana asociada a bosques y corrientes frías; está registrada para el área protegida de la Cuenca de Atitlán." }
+            { nombre: "Salamandra de Engelhardt", cientifico: "Bolitoglossa engelhardti", estado: "UICN: En peligro", amenaza: true, pisos: [1,2], nota: "Salamandra nativa de bosques húmedos de Guatemala y Chiapas, conocida aproximadamente entre 1,500 y 2,400 m." },
+            { nombre: "Salamandra de patas amarillas", cientifico: "Bolitoglossa flavimembris", estado: "UICN: En peligro", amenaza: true, pisos: [2], nota: "Especie nativa de los volcanes y montañas del occidente de Guatemala y Chiapas, asociada a bosque montano húmedo." },
+            { nombre: "Salamandra de Franklin", cientifico: "Bolitoglossa franklini", estado: "UICN: Vulnerable", amenaza: true, pisos: [2,3], nota: "Salamandra mesoamericana de bosque montano cuya conservación depende de mantener cobertura, humedad y refugios del sotobosque." },
+            { nombre: "Tlaconete de Goebel", cientifico: "Pseudoeurycea goebeli", estado: "UICN: En peligro crítico", amenaza: true, pisos: [3,4], nota: "Salamandra de bosques altos y húmedos, con distribución restringida y fuerte sensibilidad a la pérdida y degradación del hábitat." },
+            { nombre: "Rana de dedos delgados", cientifico: "Plectrohyla glandulosa", estado: "UICN: En peligro crítico", amenaza: true, pisos: [4,5], nota: "Rana montana asociada a bosques y corrientes frías de tierras altas. La conservación de quebradas y cobertura forestal es esencial para su persistencia." }
         ]
     },
     "11": {
         titulo: "Aves",
-        resumen: "La avifauna cambia desde ambientes secos próximos al lago hasta bosque nuboso y coníferas de altura. Atitlán conserva poblaciones de gran valor mesoamericano; las cinco especies seleccionadas combinan representatividad local, endemismo regional y prioridad de conservación.",
+        resumen: "La avifauna cambia desde ambientes secos próximos al lago hasta bosque nuboso y coníferas de altura. Las especies seleccionadas combinan representatividad regional, endemismo mesoamericano y prioridad de conservación.",
         especies: [
-            { nombre: "Loro nuca amarilla", cientifico: "Amazona auropalliata", estado: "UICN CR", amenaza: true, pisos: [1,2], nota: "El Plan Maestro lo registra en la parte sur de los volcanes y alrededor de Panajachel; enfrenta pérdida de hábitat y extracción ilegal." },
-            { nombre: "Chipe cabeza rosada", cientifico: "Cardellina versicolor", estado: "UICN LC · endemismo regional", amenaza: false, pisos: [2,3,4,5], nota: "Restringido a tierras altas de Guatemala y Chiapas; en Tolimán y Atitlán se han documentado poblaciones importantes." },
-            { nombre: "Quetzal", cientifico: "Pharomachrus mocinno", estado: "UICN NT", amenaza: true, pisos: [3,4,5], nota: "Ave emblemática del bosque montano y nuboso; su tendencia global es decreciente por pérdida de bosque." },
-            { nombre: "Chacha negra", cientifico: "Penelopina nigra", estado: "UICN VU", amenaza: true, pisos: [3,4,5], nota: "Crácido de bosques de montaña citado para los bosques altos de Atitlán." },
-            { nombre: "Pavo de cacho", cientifico: "Oreophasis derbianus", estado: "UICN EN", amenaza: true, pisos: [3,4,5], nota: "Atitlán alberga una de las poblaciones más importantes de esta especie de bosque nuboso en Mesoamérica." }
+            { nombre: "Loro nuca amarilla", cientifico: "Amazona auropalliata", estado: "UICN: En peligro crítico", amenaza: true, pisos: [1,2], nota: "Loro nativo muy amenazado por pérdida de hábitat y extracción ilegal. Utiliza bosques, árboles maduros y paisajes arbolados de tierras bajas y premontanas." },
+            { nombre: "Chipe cabeza rosada", cientifico: "Cardellina versicolor", estado: "UICN: Preocupación menor", amenaza: false, pisos: [2,3,4,5], nota: "Ave nativa restringida a las tierras altas de Guatemala y Chiapas, característica de bosques húmedos de pino, encino y vegetación montana." },
+            { nombre: "Quetzal", cientifico: "Pharomachrus mocinno", estado: "UICN: Casi amenazada", amenaza: true, pisos: [3,4,5], nota: "Ave emblemática del bosque montano y nuboso. Requiere árboles maduros, frutos del bosque y cavidades adecuadas para reproducirse." },
+            { nombre: "Chacha negra", cientifico: "Penelopina nigra", estado: "UICN: Vulnerable", amenaza: true, pisos: [3,4,5], nota: "Crácido nativo de bosques montanos húmedos del norte de Mesoamérica, sensible a la pérdida de bosque y a la cacería." },
+            { nombre: "Pavo de cacho", cientifico: "Oreophasis derbianus", estado: "UICN: En peligro", amenaza: true, pisos: [3,4,5], nota: "Ave de bosque nuboso con distribución muy restringida entre Guatemala y México. Atitlán forma parte de una región clave para su conservación." }
         ]
     },
     "12": {
         titulo: "Flora herbácea",
-        resumen: "El volcán San Pedro registra una riqueza notable de hierbas, con Asteraceae, Poaceae, Fabaceae y Lamiaceae entre los grupos dominantes. La selección combina especies citadas directamente en inventarios de Atitlán y representantes de ambientes secos, montanos y de cumbre.",
+        resumen: "La flora herbácea cambia desde asociaciones secas próximas al lago hasta sotobosques húmedos y ambientes fríos de altura. La selección reúne especies nativas representativas de estos contrastes ecológicos.",
         especies: [
-            { nombre: "Maguey", cientifico: "Agave brachystachys", estado: "Nativa · asociación xérica", amenaza: false, pisos: [1], nota: "Característica de la franja seca alrededor del lago, donde tolera alta insolación y déficit hídrico estacional." },
-            { nombre: "Salvia de montaña", cientifico: "Salvia lasiantha", estado: "Nativa · San Pedro", amenaza: false, pisos: [2,3], nota: "Forma parte de una de las asociaciones vegetales descritas para el volcán San Pedro." },
-            { nombre: "Begonia de bosque", cientifico: "Begonia oaxacana", estado: "Nativa mesoamericana", amenaza: false, pisos: [3,4], nota: "Registrada en el estrato herbáceo del bosque del volcán San Pedro, favorecida por ambientes húmedos y sombreados." },
-            { nombre: "Maiántemo", cientifico: "Maianthemum flexuosum", estado: "Nativa · bosque montano", amenaza: false, pisos: [4,5], nota: "Elemento herbáceo registrado en la asociación húmeda de San Pedro y vinculado al sotobosque montano." },
-            { nombre: "Lupino de montaña", cientifico: "Lupinus montanus", estado: "Nativa de tierras altas", amenaza: false, pisos: [5], nota: "Fabácea herbácea registrada en el inventario de San Pedro; representa ambientes fríos y abiertos de mayor altitud." }
+            { nombre: "Maguey", cientifico: "Agave brachystachys", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [1], nota: "Planta adaptada a alta insolación y déficit hídrico estacional, representativa de sectores secos y rocosos de la cuenca." },
+            { nombre: "Salvia de montaña", cientifico: "Salvia lasiantha", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [2,3], nota: "Especie de ambientes montanos que aporta flores y recursos para insectos polinizadores en claros, bordes y sotobosques." },
+            { nombre: "Begonia de bosque", cientifico: "Begonia oaxacana", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [3,4], nota: "Planta asociada a microambientes húmedos y sombreados, frecuente en sitios donde la cobertura mantiene humedad y temperaturas moderadas." },
+            { nombre: "Maiántemo", cientifico: "Maianthemum flexuosum", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [4,5], nota: "Elemento del sotobosque húmedo montano, favorecido por ambientes frescos, sombra y acumulación de materia orgánica." },
+            { nombre: "Lupino de montaña", cientifico: "Lupinus montanus", estado: "Nativa de tierras altas", amenaza: false, pisos: [5], nota: "Herbácea de ambientes fríos y abiertos de mayor altitud, capaz de formar parte de comunidades de cumbre y claros de montaña." }
         ]
     },
     "13": {
         titulo: "Flora arbórea",
-        resumen: "Los árboles sintetizan muy bien el gradiente: especies de bosque seco en la franja litoral, encinos y latifoliadas en pisos montanos, y coníferas adaptadas al frío en las cotas más altas. Se priorizan especies nativas y árboles con interés de conservación.",
+        resumen: "Los árboles sintetizan el gradiente altitudinal de la cuenca: especies de ambientes secos en cotas bajas, encinos y latifoliadas en pisos montanos, y coníferas adaptadas al frío en las elevaciones mayores.",
         especies: [
-            { nombre: "Ceiba / palo de lagarto", cientifico: "Ceiba aesculifolia", estado: "UICN LC · nativa", amenaza: false, pisos: [1], nota: "Árbol característico de la asociación xérica que bordea sectores del lago." },
-            { nombre: "Encino de Skinner", cientifico: "Quercus skinneri", estado: "UICN NT", amenaza: true, pisos: [2], nota: "Encino nativo de bosques montanos húmedos; está documentado en Sololá y en la flora de Atitlán." },
-            { nombre: "Mazorco", cientifico: "Oreopanax xalapensis", estado: "Nativo · bosque nuboso", amenaza: false, pisos: [3,4], nota: "Latifoliada característica del bosque montano húmedo de Atitlán; los Oreopanax aportan estructura y alimento para fauna del bosque nuboso." },
-            { nombre: "Pino blanco", cientifico: "Pinus ayacahuite", estado: "Nativo de altura", amenaza: false, pisos: [4,5], nota: "Conífera característica de los pisos fríos; el Plan Maestro la cita en bosques de altura del norte de la reserva." },
-            { nombre: "Pinabete", cientifico: "Abies guatemalensis", estado: "UICN EN", amenaza: true, pisos: [5], nota: "Conífera amenazada y emblemática de bosques altos; en Atitlán forma parte de remanentes de gran valor de conservación." }
+            { nombre: "Ceiba o palo de lagarto", cientifico: "Ceiba aesculifolia", estado: "UICN: Preocupación menor", amenaza: false, pisos: [1], nota: "Árbol nativo característico de ambientes estacionalmente secos de Mesoamérica, adecuado para representar la franja más cálida y seca de la cuenca." },
+            { nombre: "Encino de Skinner", cientifico: "Quercus skinneri", estado: "UICN: Casi amenazada", amenaza: true, pisos: [2], nota: "Encino nativo de bosques montanos húmedos, documentado en Sololá y sensible a la fragmentación y pérdida de cobertura forestal." },
+            { nombre: "Mazorco", cientifico: "Oreopanax xalapensis", estado: "UICN: Preocupación menor", amenaza: false, pisos: [3,4], nota: "Árbol nativo del bosque montano húmedo que aporta estructura, frutos y refugio para numerosas especies del bosque." },
+            { nombre: "Pino blanco", cientifico: "Pinus ayacahuite", estado: "UICN: Preocupación menor", amenaza: false, pisos: [4,5], nota: "Conífera nativa de tierras altas, característica de bosques fríos y húmedos de montaña." },
+            { nombre: "Pinabete", cientifico: "Abies guatemalensis", estado: "UICN: En peligro", amenaza: true, pisos: [5], nota: "Conífera nativa y amenazada de las tierras altas de Mesoamérica, asociada a bosques fríos de gran valor para la conservación." }
         ]
     }
+};
+
+
+const GEO_MUESTRAS = {
+    "1": [{ archivo: "1", nombre: "Pómez" }],
+    "2": [{ archivo: "2", nombre: "Ignimbrita" }],
+    "3": [{ archivo: "3", nombre: "Toba cristalina" }],
+    "4": [
+        { archivo: "4", nombre: "Arenisca" },
+        { archivo: "5", nombre: "Lutita" },
+        { archivo: "6", nombre: "Pizarra" }
+    ],
+    "5": [{ archivo: "7", nombre: "Brecha andesítica" }],
+    "6": [{ archivo: "8", nombre: "Andesita" }],
+    "7": [{ archivo: "9", nombre: "Granodiorita" }]
 };
 
 /* ============================================================
@@ -1523,7 +1548,7 @@ function animarAgua(vaciar) {
     teclaActiva = null;
     const token = ++lakeAnimToken;
     cerrarInfo(false);
-    mostrarGaleriaEspecies(null);
+    limpiarGaleria();
     marcarBoton("8");
 
     const inicio = performance.now();
@@ -1551,8 +1576,8 @@ function animarAgua(vaciar) {
 
         const progreso = Math.round(s * 100);
         estado.textContent = vaciar
-            ? `Vaciando lago · ${progreso}%`
-            : `Llenando lago · ${progreso}%`;
+            ? `Vaciando lago — ${progreso}%`
+            : `Llenando lago — ${progreso}%`;
 
         if (t < 1) {
             requestAnimationFrame(frame);
@@ -1895,7 +1920,7 @@ function crearLeyendaPisos() {
     for (const piso of PISOS) {
         const row = document.createElement("div");
         row.className = "alt-row";
-        row.innerHTML = `<span class="alt-swatch" style="background:${piso.color}"></span><span><b>P${piso.id}</b> · ${piso.rango}<span class="alt-name"><br>${piso.nombre}</span></span>`;
+        row.innerHTML = `<span class="alt-swatch" style="background:${piso.color}"></span><span><b>Piso ${piso.id}</b> ${piso.rango}<span class="alt-name"><br>${piso.nombre}</span></span>`;
         altLegendRows.appendChild(row);
     }
 }
@@ -1957,7 +1982,7 @@ function calcularPuntosPisos() {
     pisoLabelElements = puntosPiso3D.map(({ piso }) => {
         const el = document.createElement("div");
         el.className = "floor-label";
-        el.textContent = `Piso ${piso.id} · ${piso.rango}`;
+        el.textContent = `Piso ${piso.id}  ${piso.rango}`;
         floorLabels.appendChild(el);
         return el;
     });
@@ -1986,7 +2011,7 @@ function actualizarEtiquetasPisos() {
     });
 }
 
-const BIO_ASSET_VERSION = "20261012-bio1";
+const BIO_ASSET_VERSION = "20261013-ui2";
 function slugEspecie(texto) {
     return String(texto).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -2001,23 +2026,29 @@ function nombreCientificoArchivo(texto) {
 
 function rutasEspecie(tecla, indice, especie) {
     const urls = [];
+    const baseCientifico = nombreCientificoArchivo(especie.cientifico);
 
-    // 1) Si existe un nombre exacto definido, siempre se prueba primero.
-    //    Así se cargan exactamente los archivos ya subidos a /data.
+    // Primero se prefieren formatos que sí conservan transparencia.
     if (especie.archivo) {
-        urls.push(new URL(`data/${especie.archivo}`, document.baseURI).href);
+        const baseArchivo = especie.archivo.replace(/\.[^.]+$/, "");
+        for (const e of ["png", "PNG", "webp", "WEBP"]) {
+            urls.push(new URL(`data/${baseArchivo}.${e}`, document.baseURI).href);
+        }
     }
 
-    // 2) Convenciones alternativas para las próximas categorías.
     const base = [
-        nombreCientificoArchivo(especie.cientifico),
+        baseCientifico,
         `${tecla}_${indice}`,
         `${tecla}-${indice}`,
         slugEspecie(especie.cientifico),
         slugEspecie(especie.nombre)
     ];
-    const ext = ["jpg", "JPG", "jpeg", "JPEG", "png", "PNG", "webp", "WEBP"];
+    const ext = ["png", "PNG", "webp", "WEBP", "jpg", "JPG", "jpeg", "JPEG"];
     for (const b of base) for (const e of ext) urls.push(new URL(`data/${b}.${e}`, document.baseURI).href);
+
+    // Al final se prueba el nombre exacto que ya exista en la carpeta.
+    if (especie.archivo) urls.push(new URL(`data/${especie.archivo}`, document.baseURI).href);
+
     return [...new Set(urls)];
 }
 
@@ -2033,7 +2064,13 @@ function cargarImagenSecuencial(img, rutas, token) {
         const siguiente = () => {
             if (rockGallery.dataset.token !== token || !img.isConnected) return resolve(false);
             if (i >= rutas.length) return resolve(false);
-            img.onload = () => { img.onload = null; img.onerror = null; resolve(true); };
+            img.onload = () => {
+                img.onload = null;
+                img.onerror = null;
+                const src = img.currentSrc || img.src || "";
+                img.classList.toggle("jpeg-cutout", /\.jpe?g(?:\?|$)/i.test(src));
+                resolve(true);
+            };
             img.onerror = siguiente;
             img.src = conVersionBio(rutas[i++]);
         };
@@ -2041,50 +2078,123 @@ function cargarImagenSecuencial(img, rutas, token) {
     });
 }
 
-function mostrarGaleriaEspecies(tecla = null) {
-    const cat = BIO_ESCENAS[String(tecla)] || null;
+function limpiarGaleria() {
     rockGallery.classList.remove("is-visible");
     rockGallery.setAttribute("aria-hidden", "true");
     rockGallery.replaceChildren();
+    rockGallery.style.setProperty("--gallery-count", "5");
+    document.body.classList.remove("gallery-open");
+}
+
+function mostrarGaleriaEspecies(tecla = null) {
+    const cat = BIO_ESCENAS[String(tecla)] || null;
+    limpiarGaleria();
     if (!cat) return;
 
-    const token = `${tecla}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const token = `bio-${tecla}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     rockGallery.dataset.token = token;
     rockGallery.classList.add("is-visible");
     rockGallery.setAttribute("aria-hidden", "false");
-    rockGallery.dataset.count = "5";
+    rockGallery.dataset.count = String(cat.especies.length);
+    rockGallery.style.setProperty("--gallery-count", String(cat.especies.length));
+    document.body.classList.add("gallery-open");
 
     cat.especies.forEach((sp, index) => {
         const figure = document.createElement("figure");
         figure.className = "rock-sample is-loading";
+
         const img = document.createElement("img");
         img.alt = `${sp.nombre} (${sp.cientifico})`;
         img.decoding = "async";
         img.loading = "eager";
         img.draggable = false;
+
         const placeholder = document.createElement("div");
         placeholder.className = "species-placeholder";
-        placeholder.textContent = `${tecla}_${index + 1}`;
+        placeholder.textContent = "Imagen pendiente";
+
         const cap = document.createElement("figcaption");
         cap.innerHTML = `${sp.nombre}<em>${sp.cientifico}</em><span class="species-status ${sp.amenaza ? "threat" : ""}">${sp.estado}</span>`;
+
         figure.append(img, placeholder, cap);
         rockGallery.appendChild(figure);
 
         cargarImagenSecuencial(img, rutasEspecie(tecla, index + 1, sp), token).then(ok => {
             if (rockGallery.dataset.token !== token || !figure.isConnected) return;
             figure.classList.remove("is-loading");
-            if (!ok) { figure.classList.add("is-missing"); img.remove(); }
+            if (!ok) {
+                figure.classList.add("is-missing");
+                img.remove();
+            }
+        });
+    });
+}
+
+function rutasMuestraGeologica(base) {
+    const ext = ["png", "PNG", "webp", "WEBP", "jpg", "JPG", "jpeg", "JPEG"];
+    return ext.map(e => new URL(`data/${base}.${e}`, document.baseURI).href);
+}
+
+function mostrarGaleriaGeologia(tecla = null) {
+    const muestras = GEO_MUESTRAS[String(tecla)] || null;
+    limpiarGaleria();
+    if (!muestras?.length) return;
+
+    const token = `geo-${tecla}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    rockGallery.dataset.token = token;
+    rockGallery.classList.add("is-visible");
+    rockGallery.setAttribute("aria-hidden", "false");
+    rockGallery.dataset.count = String(muestras.length);
+    rockGallery.style.setProperty("--gallery-count", String(muestras.length));
+    document.body.classList.add("gallery-open");
+
+    muestras.forEach((muestra) => {
+        const figure = document.createElement("figure");
+        figure.className = "rock-sample is-loading";
+
+        const img = document.createElement("img");
+        img.alt = muestra.nombre;
+        img.decoding = "async";
+        img.loading = "eager";
+        img.draggable = false;
+
+        const placeholder = document.createElement("div");
+        placeholder.className = "species-placeholder";
+        placeholder.textContent = "Imagen pendiente";
+
+        const cap = document.createElement("figcaption");
+        cap.textContent = muestra.nombre;
+
+        figure.append(img, placeholder, cap);
+        rockGallery.appendChild(figure);
+
+        cargarImagenSecuencial(img, rutasMuestraGeologica(muestra.archivo), token).then(ok => {
+            if (rockGallery.dataset.token !== token || !figure.isConnected) return;
+            figure.classList.remove("is-loading");
+            if (!ok) {
+                figure.classList.add("is-missing");
+                img.remove();
+            }
         });
     });
 }
 
 function pisosTexto(sp) {
-    return sp.pisos.map(id => `P${id}`).join(" · ");
+    const ids = [...sp.pisos].sort((a, b) => a - b);
+    if (!ids.length) return "";
+    const primero = PISOS.find(p => p.id === ids[0]);
+    const ultimo = PISOS.find(p => p.id === ids[ids.length - 1]);
+    const min = primero.id === 1 ? 1560 : primero.min;
+
+    if (!Number.isFinite(ultimo.max)) {
+        return `Desde ${Math.round(min).toLocaleString("es-GT")} m hasta las cumbres`;
+    }
+    return `Entre ${Math.round(min).toLocaleString("es-GT")} y ${Math.round(ultimo.max).toLocaleString("es-GT")} m`;
 }
 
 function htmlEspecies(cat) {
     return `<span class="bio-species-list">${cat.especies.map(sp => `
-        <span class="sp"><strong>${sp.nombre}</strong> · <em>${sp.cientifico}</em>
+        <span class="sp"><strong>${sp.nombre}</strong> <em>${sp.cientifico}</em>
         <span class="tag ${sp.amenaza ? "threat" : ""}">${sp.estado}</span>
         <span class="tag">${pisosTexto(sp)}</span><br>${sp.nota}</span>`).join("")}</span>`;
 }
@@ -2104,7 +2214,7 @@ function salirModoEcologico(restaurarMaterial = true) {
     modoEcologico = false;
     document.body.classList.remove("bio-open");
     mostrarPisos(false);
-    mostrarGaleriaEspecies(null);
+    limpiarGaleria();
     if (aguaMaterial) aguaMaterial.opacity = 0.80;
     if (restaurarMaterial && terreno && materialGeologia) terreno.material = materialGeologia;
 }
@@ -2149,9 +2259,7 @@ function activarEcologia(tecla) {
     abrirInfo({
         codigo: String(tecla),
         titulo: cat.titulo,
-        geologia: `${cat.resumen}\n\nLos cinco colores del relieve representan pisos altitudinales calculados directamente a partir del DEM. Esta zonificación sirve para explicar tendencias ecológicas, pero no equivale a un mapa de presencia: exposición, humedad, cobertura y perturbación también controlan la distribución real.
-
-Base ecológica: Plan Maestro RUMCLA (CONAP) y estudio de vegetación del volcán San Pedro (USAC); las categorías de amenaza se indican como UICN o CONAP cuando corresponde.`,
+        geologia: `${cat.resumen}\n\nLos cinco colores del relieve representan franjas altitudinales para interpretar cómo cambian las condiciones ecológicas con la altura. No representan presencia exacta de cada especie: la humedad, la orientación de las laderas, la continuidad del bosque y la perturbación también influyen en su distribución.`,
         edafologia: htmlEspecies(cat),
         edafologiaHtml: true,
         seccion1: "Distribución por pisos altitudinales",
@@ -2167,7 +2275,7 @@ Base ecológica: Plan Maestro RUMCLA (CONAP) y estudio de vegetación del volcá
         animarCamara(vista.pos, vista.target);
     });
 
-    estado.textContent = `${tecla} · ${cat.titulo} · pisos altitudinales`;
+    estado.textContent = `${tecla} — ${cat.titulo} — pisos altitudinales`;
 }
 
 /* ============================================================
@@ -2194,7 +2302,7 @@ function cerrarInfo(limpiarSeleccion = true) {
     infoRail.dataset.callout = "0";
     puntoCallout3D = null;
     ocultarCallout();
-    mostrarGaleriaEspecies(null);
+    limpiarGaleria();
 
     if (limpiarSeleccion) {
         teclaActiva = null;
@@ -2346,7 +2454,7 @@ function activarEscena(tecla) {
     puntoCallout3D = new THREE.Vector3(local.x, local.y, z + 145);
     teclaActiva = tecla;
     marcarBoton(tecla);
-    mostrarGaleriaEspecies(null);
+    mostrarGaleriaGeologia(tecla);
 
     const { destinoPos, destinoTarget } = calcularCamaraFrontal(datos, local, z);
     animarCamara(destinoPos, destinoTarget);
@@ -2360,7 +2468,7 @@ function activarEscena(tecla) {
         conCallout: true
     });
 
-    estado.textContent = `${config.simbolo} · ${titulo}`;
+    estado.textContent = `${config.simbolo} — ${titulo}`;
 }
 
 
@@ -2491,7 +2599,7 @@ async function iniciar() {
         await cargarDEM();
         await cargarGeologia();
         await cargarLago();
-        estado.textContent = "Visor listo · 1–7 geología · 8 lago · 9–13 biodiversidad";
+        estado.textContent = "Visor listo — 1–7 geología — 8 lago — 9–13 biodiversidad";
     } catch (error) {
         console.error(error);
         estado.textContent = "ERROR: " + error.message;
