@@ -284,15 +284,16 @@ body.info-open #infoRail { transform: translateX(0); }
 ========================================================= */
 #rockGallery {
     position: absolute;
-    top: 50%;
-    right: 14px;
+    /* Zona alta libre: debajo del título y antes de la ficha lateral. */
+    top: 82px;
+    right: 22px;
     z-index: 68;
-    width: clamp(145px, 12vw, 195px);
+    width: clamp(145px, 12vw, 190px);
     display: grid;
-    align-content: center;
+    align-content: start;
     justify-items: center;
-    gap: 10px;
-    transform: translateY(-50%) translateX(16px);
+    gap: 8px;
+    transform: translateX(16px) translateY(-4px);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -301,7 +302,7 @@ body.info-open #infoRail { transform: translateX(0); }
 #rockGallery.is-visible {
     opacity: 1;
     visibility: visible;
-    transform: translateY(-50%) translateX(0);
+    transform: translateX(0) translateY(0);
     transition-delay: 0s;
 }
 .rock-sample {
@@ -351,14 +352,16 @@ body.info-open #infoRail { transform: translateX(0); }
         0 3px 10px rgba(255,255,255,.85);
 }
 #rockGallery[data-count="3"] {
-    width: clamp(125px, 10.5vw, 165px);
-    gap: 5px;
+    width: clamp(300px, 25vw, 390px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+    gap: 8px;
 }
 #rockGallery[data-count="3"] .rock-sample img {
-    max-height: clamp(78px, 13vh, 122px);
+    max-height: clamp(82px, 12vh, 118px);
 }
 #rockGallery[data-count="3"] .rock-sample figcaption {
-    font-size: 11px;
+    font-size: 10.5px;
 }
 
 /* =========================================================
@@ -395,28 +398,28 @@ body.info-open #infoRail { transform: translateX(0); }
     .info-section p { font-size: 13.5px; line-height: 1.58; text-align: left; }
 
     #rockGallery {
-        top: auto;
-        right: auto;
-        left: 50%;
-        bottom: 76px;
-        width: min(300px, calc(100vw - 32px));
+        top: 62px;
+        right: 8px;
+        left: auto;
+        bottom: auto;
+        width: min(126px, 31vw);
         grid-template-columns: 1fr;
-        gap: 4px;
-        transform: translateX(-50%) translateY(8px);
+        gap: 3px;
+        transform: translateX(10px) translateY(-3px);
     }
-    #rockGallery.is-visible { transform: translateX(-50%) translateY(0); }
+    #rockGallery.is-visible { transform: translateX(0) translateY(0); }
     #rockGallery[data-count="3"] {
-        width: min(330px, calc(100vw - 20px));
+        width: min(285px, calc(100vw - 20px));
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 4px;
+        gap: 3px;
     }
     .rock-sample img {
-        width: min(150px, 42vw);
-        max-height: 105px;
+        width: min(120px, 29vw);
+        max-height: 92px;
     }
     #rockGallery[data-count="3"] .rock-sample img {
         width: 100%;
-        max-height: 78px;
+        max-height: 66px;
     }
     .rock-sample figcaption,
     #rockGallery[data-count="3"] .rock-sample figcaption {
@@ -1543,7 +1546,7 @@ function marcarBoton(tecla = null) {
     }
 }
 
-const ROCK_ASSET_VERSION = "20261012-r2";
+const ROCK_ASSET_VERSION = "20261012-r4";
 
 const ROCAS_LEGACY = {
     4: ["Areniscas.png", "areniscas.png", "Arenisca.png", "arenisca.png"],
@@ -1551,10 +1554,13 @@ const ROCAS_LEGACY = {
     6: ["Pizarras.png", "pizarras.png", "Pizarra.png", "pizarra.png"]
 };
 
+function urlAssetRoca(nombre) {
+    // new URL respeta automáticamente si GitHub Pages está publicado en
+    // usuario.github.io/repositorio/ o en un dominio propio.
+    return new URL(`data/${nombre}`, document.baseURI).href;
+}
+
 function candidatosRoca(numero) {
-    // Primero se prueban los nombres numéricos acordados. También se aceptan
-    // variantes de extensión, archivo sin extensión y los nombres antiguos de
-    // la escena 4 para que el cambio de nomenclatura no rompa el visor.
     const nombres = [
         `${numero}.png`,
         `${numero}.PNG`,
@@ -1564,47 +1570,148 @@ function candidatosRoca(numero) {
         `${numero}.JPG`,
         `${numero}.jpeg`,
         `${numero}.JPEG`,
-        `${numero}`,
+        `${numero}.avif`,
+        `${numero}.AVIF`,
         ...(ROCAS_LEGACY[numero] || [])
     ];
 
-    return [...new Set(nombres)].map(nombre => `data/${nombre}`);
+    return [...new Set(nombres)].map(urlAssetRoca);
 }
 
-function resolverImagenRoca(rutas, token) {
+let promesaCatalogoRocasGithub = null;
+
+function datosRepositorioGithubPages() {
+    const host = location.hostname.toLowerCase();
+    if (!host.endsWith(".github.io")) return null;
+
+    const owner = host.slice(0, -".github.io".length);
+    const partes = location.pathname.split("/").filter(Boolean);
+
+    // En un Project Page la primera carpeta es el nombre del repo.
+    // En un User Page la repo es usuario.github.io.
+    const repo = partes.length && !partes[0].toLowerCase().endsWith(".html")
+        ? partes[0]
+        : `${owner}.github.io`;
+
+    return { owner, repo };
+}
+
+async function catalogoRocasGithub() {
+    if (promesaCatalogoRocasGithub) return promesaCatalogoRocasGithub;
+
+    promesaCatalogoRocasGithub = (async () => {
+        const repo = datosRepositorioGithubPages();
+        if (!repo) return new Map();
+
+        const mapa = new Map();
+
+        try {
+            const api = `https://api.github.com/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/contents/data`;
+            const r = await fetch(api, {
+                cache: "no-store",
+                headers: { "Accept": "application/vnd.github+json" }
+            });
+
+            if (!r.ok) return mapa;
+
+            const archivos = await r.json();
+            if (!Array.isArray(archivos)) return mapa;
+
+            // Se admiten 1.png, 1.PNG, 1.webp, pero también nombres como
+            // "1-pomez.png" o "1 pomez.png" por si GitHub los recibió así.
+            for (const a of archivos) {
+                if (!a || a.type !== "file" || !a.name) continue;
+
+                const m = a.name.match(/^([1-9])(?:$|[._\-\s(])/i);
+                if (!m) continue;
+                if (!/\.(png|webp|jpe?g|avif)$/i.test(a.name)) continue;
+
+                const n = Number(m[1]);
+                if (!mapa.has(n)) mapa.set(n, []);
+
+                // Primero intentamos el archivo publicado por Pages y luego
+                // el raw de GitHub como respaldo inmediato tras el commit.
+                mapa.get(n).push(urlAssetRoca(a.name));
+                if (a.download_url) mapa.get(n).push(a.download_url);
+            }
+        } catch (err) {
+            console.warn("No se pudo consultar la carpeta data/ en GitHub:", err);
+        }
+
+        return mapa;
+    })();
+
+    return promesaCatalogoRocasGithub;
+}
+
+function conVersion(url) {
+    try {
+        const u = new URL(url, document.baseURI);
+        u.searchParams.set("v", ROCK_ASSET_VERSION);
+        return u.href;
+    } catch {
+        const sep = String(url).includes("?") ? "&" : "?";
+        return `${url}${sep}v=${ROCK_ASSET_VERSION}`;
+    }
+}
+
+function probarRutasEnImg(img, rutas, token) {
     return new Promise(resolve => {
         let i = 0;
 
-        const probar = () => {
-            if (rockGallery.dataset.token !== token) {
-                resolve(null);
+        const siguiente = () => {
+            if (rockGallery.dataset.token !== token || !img.isConnected) {
+                resolve(false);
                 return;
             }
 
             if (i >= rutas.length) {
-                resolve(null);
+                img.onload = null;
+                img.onerror = null;
+                resolve(false);
                 return;
             }
 
             const ruta = rutas[i++];
-            const prueba = new Image();
-            prueba.decoding = "async";
-
-            prueba.onload = () => resolve(ruta);
-            prueba.onerror = probar;
-
-            // El parámetro evita que Chrome/GitHub Pages reutilicen un 404
-            // antiguo después de subir una imagen con ese mismo nombre.
-            const sep = ruta.includes("?") ? "&" : "?";
-            prueba.src = `${ruta}${sep}v=${ROCK_ASSET_VERSION}`;
+            img.onload = () => {
+                img.onload = null;
+                img.onerror = null;
+                resolve(true);
+            };
+            img.onerror = siguiente;
+            img.src = conVersion(ruta);
         };
 
-        probar();
+        siguiente();
     });
+}
+
+async function cargarImagenRoca(img, numero, token) {
+    // 1) Nombres exactos esperados.
+    let ok = await probarRutasEnImg(img, candidatosRoca(numero), token);
+    if (ok) return true;
+
+    // 2) Si estamos en GitHub Pages, descubrir el nombre REAL en data/.
+    const mapa = await catalogoRocasGithub();
+    if (rockGallery.dataset.token !== token || !img.isConnected) return false;
+
+    const descubiertas = [...new Set(mapa.get(Number(numero)) || [])];
+    if (descubiertas.length) {
+        ok = await probarRutasEnImg(img, descubiertas, token);
+        if (ok) return true;
+    }
+
+    console.warn(
+        `No se encontró la roca ${numero}.`,
+        "Rutas directas:", candidatosRoca(numero),
+        "Rutas descubiertas:", descubiertas
+    );
+    return false;
 }
 
 function mostrarGaleriaRocas(tecla = null) {
     const rocas = tecla ? (ROCAS_ESCENA[String(tecla)] || []) : [];
+
     rockGallery.classList.remove("is-visible");
     rockGallery.setAttribute("aria-hidden", "true");
     rockGallery.replaceChildren();
@@ -1612,11 +1719,8 @@ function mostrarGaleriaRocas(tecla = null) {
 
     if (!rocas.length) return;
 
-    const token = `${tecla}-${performance.now()}`;
+    const token = `${tecla}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     rockGallery.dataset.token = token;
-
-    // La galería se hace visible desde el principio. Así el rótulo no
-    // desaparece silenciosamente mientras GitHub Pages resuelve la imagen.
     rockGallery.classList.add("is-visible");
     rockGallery.setAttribute("aria-hidden", "false");
 
@@ -1627,8 +1731,8 @@ function mostrarGaleriaRocas(tecla = null) {
         const img = document.createElement("img");
         img.alt = `${roca.nombre}, muestra litológica de referencia`;
         img.decoding = "async";
+        img.loading = "eager";
         img.draggable = false;
-        img.style.opacity = "0";
 
         const caption = document.createElement("figcaption");
         caption.textContent = roca.nombre;
@@ -1636,28 +1740,19 @@ function mostrarGaleriaRocas(tecla = null) {
         figure.append(img, caption);
         rockGallery.appendChild(figure);
 
-        resolverImagenRoca(candidatosRoca(roca.n), token).then(ruta => {
+        cargarImagenRoca(img, roca.n, token).then(ok => {
             if (rockGallery.dataset.token !== token || !figure.isConnected) return;
 
-            if (!ruta) {
-                figure.classList.remove("is-loading");
-                figure.classList.add("is-missing");
-                console.warn(`No se encontró imagen para ${roca.nombre}. Se probaron:`, candidatosRoca(roca.n));
-                return;
-            }
+            figure.classList.remove("is-loading");
 
-            const sep = ruta.includes("?") ? "&" : "?";
-            img.onload = () => {
-                if (rockGallery.dataset.token !== token) return;
-                figure.classList.remove("is-loading", "is-missing");
+            if (ok) {
+                figure.classList.remove("is-missing");
                 figure.classList.add("is-loaded");
-                img.style.opacity = "1";
-            };
-            img.onerror = () => {
-                figure.classList.remove("is-loading");
+            } else {
                 figure.classList.add("is-missing");
-            };
-            img.src = `${ruta}${sep}v=${ROCK_ASSET_VERSION}`;
+                // No dejamos el icono de imagen rota.
+                img.remove();
+            }
         });
     }
 }
@@ -1734,9 +1829,15 @@ function actualizarCallout() {
         points = `${x},${y} ${x},${elbowY} ${endX},${endY}`;
     } else {
         const endX = railRect.left;
-        const endY = THREE.MathUtils.clamp(y, cardRect.top + 70, cardRect.bottom - 70);
-        const elbowX = Math.max(x + 28, endX - 36);
-        points = `${x},${y} ${elbowX},${y} ${endX},${endY}`;
+        /* Mantener la llegada del callout por debajo de la zona reservada a las rocas. */
+        const rockVisible = rockGallery.classList.contains("is-visible");
+        const safeTop = rockVisible
+            ? Math.max(cardRect.top + 245, window.innerHeight * 0.32)
+            : cardRect.top + 70;
+        const endY = THREE.MathUtils.clamp(y, safeTop, cardRect.bottom - 70);
+        const elbowX = Math.max(x + 28, endX - 38);
+        const elbowY = rockVisible && y < safeTop ? safeTop : y;
+        points = `${x},${y} ${Math.min(elbowX, endX - 54)},${elbowY} ${endX},${endY}`;
     }
 
     calloutLine.setAttribute("points", points);
