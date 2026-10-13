@@ -326,6 +326,13 @@ body.info-open #infoRail { transform: translateX(0); }
     border: 0;
     border-radius: 0;
     filter: drop-shadow(0 10px 13px rgba(15,42,57,.22));
+    transition: opacity 220ms ease;
+}
+.rock-sample.is-loading figcaption { opacity: .72; }
+.rock-sample.is-missing figcaption::after {
+    content: " · imagen pendiente";
+    font-weight: 650;
+    opacity: .62;
 }
 .rock-sample figcaption {
     margin-top: 3px;
@@ -1536,17 +1543,64 @@ function marcarBoton(tecla = null) {
     }
 }
 
+const ROCK_ASSET_VERSION = "20261012-r2";
+
+const ROCAS_LEGACY = {
+    4: ["Areniscas.png", "areniscas.png", "Arenisca.png", "arenisca.png"],
+    5: ["lutita.png", "Lutita.png"],
+    6: ["Pizarras.png", "pizarras.png", "Pizarra.png", "pizarra.png"]
+};
+
 function candidatosRoca(numero) {
-    // PNG es la opción prevista porque conserva transparencia. Las demás
-    // extensiones son respaldo por si el archivo se sube con otra extensión.
-    return [
-        `data/${numero}.png`,
-        `data/${numero}.PNG`,
-        `data/${numero}.webp`,
-        `data/${numero}.WEBP`,
-        `data/${numero}.jpg`,
-        `data/${numero}.jpeg`
+    // Primero se prueban los nombres numéricos acordados. También se aceptan
+    // variantes de extensión, archivo sin extensión y los nombres antiguos de
+    // la escena 4 para que el cambio de nomenclatura no rompa el visor.
+    const nombres = [
+        `${numero}.png`,
+        `${numero}.PNG`,
+        `${numero}.webp`,
+        `${numero}.WEBP`,
+        `${numero}.jpg`,
+        `${numero}.JPG`,
+        `${numero}.jpeg`,
+        `${numero}.JPEG`,
+        `${numero}`,
+        ...(ROCAS_LEGACY[numero] || [])
     ];
+
+    return [...new Set(nombres)].map(nombre => `data/${nombre}`);
+}
+
+function resolverImagenRoca(rutas, token) {
+    return new Promise(resolve => {
+        let i = 0;
+
+        const probar = () => {
+            if (rockGallery.dataset.token !== token) {
+                resolve(null);
+                return;
+            }
+
+            if (i >= rutas.length) {
+                resolve(null);
+                return;
+            }
+
+            const ruta = rutas[i++];
+            const prueba = new Image();
+            prueba.decoding = "async";
+
+            prueba.onload = () => resolve(ruta);
+            prueba.onerror = probar;
+
+            // El parámetro evita que Chrome/GitHub Pages reutilicen un 404
+            // antiguo después de subir una imagen con ese mismo nombre.
+            const sep = ruta.includes("?") ? "&" : "?";
+            prueba.src = `${ruta}${sep}v=${ROCK_ASSET_VERSION}`;
+        };
+
+        probar();
+    });
 }
 
 function mostrarGaleriaRocas(tecla = null) {
@@ -1558,19 +1612,23 @@ function mostrarGaleriaRocas(tecla = null) {
 
     if (!rocas.length) return;
 
-    let cargadas = 0;
     const token = `${tecla}-${performance.now()}`;
     rockGallery.dataset.token = token;
 
+    // La galería se hace visible desde el principio. Así el rótulo no
+    // desaparece silenciosamente mientras GitHub Pages resuelve la imagen.
+    rockGallery.classList.add("is-visible");
+    rockGallery.setAttribute("aria-hidden", "false");
+
     for (const roca of rocas) {
         const figure = document.createElement("figure");
-        figure.className = "rock-sample";
-        figure.style.visibility = "hidden";
+        figure.className = "rock-sample is-loading";
 
         const img = document.createElement("img");
         img.alt = `${roca.nombre}, muestra litológica de referencia`;
         img.decoding = "async";
         img.draggable = false;
+        img.style.opacity = "0";
 
         const caption = document.createElement("figcaption");
         caption.textContent = roca.nombre;
@@ -1578,33 +1636,29 @@ function mostrarGaleriaRocas(tecla = null) {
         figure.append(img, caption);
         rockGallery.appendChild(figure);
 
-        const rutas = candidatosRoca(roca.n);
-        let intento = 0;
+        resolverImagenRoca(candidatosRoca(roca.n), token).then(ruta => {
+            if (rockGallery.dataset.token !== token || !figure.isConnected) return;
 
-        const probarSiguiente = () => {
-            if (intento >= rutas.length) {
-                figure.remove();
+            if (!ruta) {
+                figure.classList.remove("is-loading");
+                figure.classList.add("is-missing");
+                console.warn(`No se encontró imagen para ${roca.nombre}. Se probaron:`, candidatosRoca(roca.n));
                 return;
             }
-            img.src = rutas[intento++];
-        };
 
-        img.addEventListener("load", () => {
-            if (rockGallery.dataset.token !== token) return;
-            figure.style.visibility = "visible";
-            cargadas++;
-            if (cargadas === 1) {
-                rockGallery.classList.add("is-visible");
-                rockGallery.setAttribute("aria-hidden", "false");
-            }
-        }, { once: true });
-
-        img.addEventListener("error", () => {
-            if (rockGallery.dataset.token !== token) return;
-            probarSiguiente();
+            const sep = ruta.includes("?") ? "&" : "?";
+            img.onload = () => {
+                if (rockGallery.dataset.token !== token) return;
+                figure.classList.remove("is-loading", "is-missing");
+                figure.classList.add("is-loaded");
+                img.style.opacity = "1";
+            };
+            img.onerror = () => {
+                figure.classList.remove("is-loading");
+                figure.classList.add("is-missing");
+            };
+            img.src = `${ruta}${sep}v=${ROCK_ASSET_VERSION}`;
         });
-
-        probarSiguiente();
     }
 }
 
