@@ -25,7 +25,7 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #b9ced3;
+    background: #ffffff;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     color: var(--ink);
     -webkit-tap-highlight-color: transparent;
@@ -40,7 +40,7 @@ button { font: inherit; }
     inset: 0;
     right: 0;
     overflow: hidden;
-    background: #b9ced3;
+    background: #ffffff;
     transition: right 360ms cubic-bezier(.2,.75,.25,1), bottom 360ms cubic-bezier(.2,.75,.25,1);
 }
 body.info-open #stage { right: var(--rail-w); }
@@ -80,7 +80,7 @@ body.gallery-open #visor { top: var(--bio-shelf-h); }
 }
 #mainHeader h1 {
     margin: 0;
-    color: var(--navy);
+    color: #207a43;
     font-size: clamp(18px, 1.65vw, 26px);
     line-height: 1.08;
     font-weight: 800;
@@ -803,6 +803,22 @@ body.gallery-open #visor { top: 0; }
     #infoCard { overflow-y: auto; overscroll-behavior: contain; }
 }
 
+/* Los pueblos reducen su escala según la distancia a la cámara. */
+.townLabel {
+    transform: translate(-50%, -105%) scale(var(--town-scale, 1));
+    transform-origin: 50% 100%;
+    will-change: transform;
+}
+
+/* Escena 8: clave batimétrica discreta y adaptable al ancho del panel. */
+#lakeDepthLegend[hidden] { display: none !important; }
+.lake-depth-ramp { height: 16px; border-radius: 7px; border: 1px solid #d7e4ea;
+    background: linear-gradient(90deg, #a7e3cd 0%, #58bed2 25%, #2986c0 50%, #24569a 76%, #212f68 100%); }
+.lake-depth-ticks { display: flex; justify-content: space-between; gap: 4px; margin-top: 5px;
+    color: #355365; font-size: 10px; font-weight: 700; }
+.info-section p.lake-depth-note { font-size: 11px; line-height: 1.45; margin-top: 9px;
+    text-align: left; color: #566671; }
+
 </style>
 
 </head>
@@ -842,6 +858,12 @@ body.gallery-open #visor { top: 0; }
         <section class="info-section">
             <h4 id="infoSeccion2Titulo">Suelos y vegetación</h4>
             <p id="infoEdafologia"></p>
+        </section>
+        <section id="lakeDepthLegend" class="info-section" aria-label="Escala de profundidades del lago" hidden>
+            <h4>Profundidad representada en el modelo</h4>
+            <div class="lake-depth-ramp" role="img" aria-label="Escala de profundidad: turquesa en zonas someras, azul en zonas intermedias y azul oscuro en zonas profundas"></div>
+            <div class="lake-depth-ticks"><span>0 m</span><span>100 m</span><span>200 m</span><span>327.56 m</span></div>
+            <p class="lake-depth-note">Los colores corresponden al fondo representado por el DEM del proyecto. La escala se ajusta a la profundidad máxima publicada; es una visualización aproximada, no una reconstrucción exacta del levantamiento batimétrico de 2014.</p>
         </section>
         <section id="mediaSection" class="info-section" aria-label="Galería de imágenes" hidden>
             <h4>Ilustraciones y fotografías</h4>
@@ -923,38 +945,38 @@ const TEXTURA_PISOS_RES = 1100;
 const ESCENAS = {
     "1": {
         simbolo: "Qpa4",
-        resumen: "Depósitos posteriores a Los Chocoyos (Post-H). En el interior y alrededor de la caldera actual aparecen capas de tefra y pómez procedentes de al menos cinco erupciones silíceas posteriores a Los Chocoyos, además de dos o tres episodios basálticos y andesíticos. Incluyen cenizas, depósitos de caída, oleadas piroclásticas y pequeños flujos de ceniza. Fuente: GARICLA (2011), p. 31 del PDF.",
-        edafologia: "Estos depósitos corresponden a una fase posterior a la formación de la caldera Atitlán III. El informe indica que algunas capas están separadas por paleosuelos finos de 2 a 10 cm y que la secuencia puede alcanzar 60 m de espesor. Son más consolidados y resistentes a la erosión que los depósitos de Los Chocoyos, por lo que originan mesetas que pueden favorecer los cultivos y asentamientos. Fuente: GARICLA (2011), p. 31 del PDF."
+        resumen: "Depósitos posteriores a Los Chocoyos (Post-H). En el interior y alrededor de la caldera actual aparecen capas de tefra y pómez procedentes de al menos cinco erupciones silíceas posteriores a Los Chocoyos, además de dos o tres episodios basálticos y andesíticos. Incluyen cenizas, depósitos de caída, oleadas piroclásticas y pequeños flujos de ceniza.",
+        edafologia: "Estos depósitos corresponden a una fase posterior a la formación de la caldera Atitlán III. El informe indica que algunas capas están separadas por paleosuelos finos de 2 a 10 cm y que la secuencia puede alcanzar 60 m de espesor. Son más consolidados y resistentes a la erosión que los depósitos de Los Chocoyos, por lo que originan mesetas que pueden favorecer los cultivos y asentamientos."
     },
     "2": {
         simbolo: "Qpf3",
-        resumen: "Flujos piroclásticos de la erupción de Los Chocoyos. Son depósitos de ignimbrita poco consolidados, compuestos por pómez, cenizas, cristales y fragmentos de roca. Rellenan numerosos valles del occidente guatemalteco; el informe señala un espesor medio de unos 20 m y máximos de hasta 200 m. Esta erupción está vinculada al colapso que originó la actual caldera de Atitlán III. Fuente: GARICLA (2011), p. 30 del PDF.",
-        edafologia: "Los clastos de pómez suelen medir entre 1 y 20 cm, aunque algunos alcanzan 1 m. Se describen cristales de biotita, anfíboles, plagioclasa y cuarzo, además de fragmentos líticos predominantemente andesíticos. La alta porosidad, permeabilidad y baja consistencia de estos materiales favorecen la disección por ríos y los deslizamientos superficiales en paredes escarpadas. Fuente: GARICLA (2011), p. 30 del PDF."
+        resumen: "Flujos piroclásticos de la erupción de Los Chocoyos. Son depósitos de ignimbrita poco consolidados, compuestos por pómez, cenizas, cristales y fragmentos de roca. Rellenan numerosos valles del occidente guatemalteco; el informe señala un espesor medio de unos 20 m y máximos de hasta 200 m. Esta erupción está vinculada al colapso que originó la actual caldera de Atitlán III.",
+        edafologia: "Los clastos de pómez suelen medir entre 1 y 20 cm, aunque algunos alcanzan 1 m. Se describen cristales de biotita, anfíboles, plagioclasa y cuarzo, además de fragmentos líticos predominantemente andesíticos. La alta porosidad, permeabilidad y baja consistencia de estos materiales favorecen la disección por ríos y los deslizamientos superficiales en paredes escarpadas."
     },
     "3": {
         simbolo: "Tmt4",
-        resumen: "Toba María Tecún: conjunto de cinco grandes unidades de toba de ceniza volcánica asociadas al ciclo Atitlán I. Dentro de la cuenca se reconocen afloramientos de la cuarta unidad en la cordillera María Tecún y sectores de otras unidades hacia Santa Catarina, San Antonio Palopó y San Lucas Tolimán. El informe fecha la cuarta toba en 11,6 ± 0,5 millones de años. El código Tmt4 del visor identifica una subdivisión cartográfica de la unidad general Tmt descrita por el informe. Fuente: GARICLA (2011), pp. 17–18 del PDF.",
-        edafologia: "Son tobas masivas, duras y consolidadas, pero muy fracturadas, con fracturas predominantes norte-sur y noreste-suroeste. Presentan tonalidades grises, azuladas, rojizas o marrones, y minerales como cuarzo, plagioclasa, sanidina, biotita y hornblenda. Su permeabilidad es baja y se concentra en las fracturas. Esta unidad registra grandes erupciones silíceas anteriores a la caldera actual. Fuente: GARICLA (2011), pp. 17–18 del PDF."
+        resumen: "Toba María Tecún: conjunto de cinco grandes unidades de toba de ceniza volcánica asociadas al ciclo Atitlán I. Dentro de la cuenca se reconocen afloramientos de la cuarta unidad en la cordillera María Tecún y sectores de otras unidades hacia Santa Catarina, San Antonio Palopó y San Lucas Tolimán. El informe fecha la cuarta toba en 11,6 ± 0,5 millones de años. El código Tmt4 del visor identifica una subdivisión cartográfica de la unidad general Tmt descrita por el informe.",
+        edafologia: "Son tobas masivas, duras y consolidadas, pero muy fracturadas, con fracturas predominantes norte-sur y noreste-suroeste. Presentan tonalidades grises, azuladas, rojizas o marrones, y minerales como cuarzo, plagioclasa, sanidina, biotita y hornblenda. Su permeabilidad es baja y se concentra en las fracturas. Esta unidad registra grandes erupciones silíceas anteriores a la caldera actual."
     },
     "4": {
         simbolo: "Tcf2",
-        resumen: "Sedimentos de relleno de la caldera Atitlán II. Tras la formación de esta caldera, la erosión de tobas y de otras rocas circundantes aportó materiales que se acumularon en su interior. Predominan arenas, lutitas y pizarras de grano fino; también aparecen conglomerados de fragmentos de pómez, cenizas y lapilli intercalados. Fuente: GARICLA (2011), p. 24 del PDF.",
-        edafologia: "El predominio de capas finas indica un ambiente de sedimentación de menor energía que el de los rellenos de la caldera Atitlán I. El informe describe niveles diatomáceos, limos silíceos y alternancia de láminas muy delgadas. Las areniscas presentan consolidación media, mientras que los niveles lutíticos pueden ser menos consolidados y más fracturados, favoreciendo los deslizamientos. Fuente: GARICLA (2011), p. 24 del PDF."
+        resumen: "Sedimentos de relleno de la caldera Atitlán II. Tras la formación de esta caldera, la erosión de tobas y de otras rocas circundantes aportó materiales que se acumularon en su interior. Predominan arenas, lutitas y pizarras de grano fino; también aparecen conglomerados de fragmentos de pómez, cenizas y lapilli intercalados.",
+        edafologia: "El predominio de capas finas indica un ambiente de sedimentación de menor energía que el de los rellenos de la caldera Atitlán I. El informe describe niveles diatomáceos, limos silíceos y alternancia de láminas muy delgadas. Las areniscas presentan consolidación media, mientras que los niveles lutíticos pueden ser menos consolidados y más fracturados, favoreciendo los deslizamientos."
     },
     "5": {
         simbolo: "QTa",
-        resumen: "Lavas, lodos y depósitos piroclásticos relacionados con complejos estratovolcánicos terciario-cuaternarios del comienzo del ciclo Atitlán III. El informe relaciona estos materiales con tres edificios anteriores a los volcanes modernos: San Marcos, Tecolote y Paquisís, actualmente parcialmente erosionados. En los alrededores se observan acumulaciones de lavas sobre los sedimentos de relleno de la caldera II. El informe escribe el código como Qta. Fuente: GARICLA (2011), p. 27 del PDF.",
-        edafologia: "Predominan distintos tipos de andesitas, junto con andesitas basálticas, basaltos olivínicos y algunas dacitas. Las mezclas de minerales y xenolitos indican procesos de diferenciación y posible mezcla de magmas. Esta escena permite explicar que, antes de los volcanes actuales, ya existían otros edificios volcánicos cuya erosión dejó parte de las rocas visibles hoy. Fuente: GARICLA (2011), p. 27 del PDF."
+        resumen: "Lavas, lodos y depósitos piroclásticos relacionados con complejos estratovolcánicos terciario-cuaternarios del comienzo del ciclo Atitlán III. El informe relaciona estos materiales con tres edificios anteriores a los volcanes modernos: San Marcos, Tecolote y Paquisís, actualmente parcialmente erosionados. En los alrededores se observan acumulaciones de lavas sobre los sedimentos de relleno de la caldera II. El informe escribe el código como Qta.",
+        edafologia: "Predominan distintos tipos de andesitas, junto con andesitas basálticas, basaltos olivínicos y algunas dacitas. Las mezclas de minerales y xenolitos indican procesos de diferenciación y posible mezcla de magmas. Esta escena permite explicar que, antes de los volcanes actuales, ya existían otros edificios volcánicos cuya erosión dejó parte de las rocas visibles hoy."
     },
     "6": {
         simbolo: "Qa",
-        resumen: "Complejos estratovolcánicos cuaternarios representados en el visor. El informe describe el desarrollo de los volcanes modernos San Pedro, Atitlán y Tolimán dentro del tercer ciclo volcánico. Estos edificios volcánicos, situados al sur de la caldera, forman una parte esencial del relieve que rodea el lago. La descripción corresponde al proceso general documentado; el código cartográfico Qa no se desarrolla como unidad individual en las páginas 8–31 consultadas. Fuente: GARICLA (2011), pp. 10 y 14 del PDF.",
-        edafologia: "La formación de estratovolcanes está ligada al ascenso de magmas originados en un contexto de subducción. El informe describe coladas de lava y actividad volcánica sucesiva que construyeron el paisaje actual. Para esta escena conviene explicar cómo los volcanes modernos se relacionan con la fase más reciente del ciclo Atitlán III, sin atribuir a Qa propiedades litológicas específicas que no se documentan dentro del rango de páginas solicitado. Fuente: GARICLA (2011), pp. 10 y 14 del PDF."
+        resumen: "Complejos estratovolcánicos cuaternarios representados en el visor. El informe describe el desarrollo de los volcanes modernos San Pedro, Atitlán y Tolimán dentro del tercer ciclo volcánico. Estos edificios volcánicos, situados al sur de la caldera, forman una parte esencial del relieve que rodea el lago. La descripción corresponde al proceso general documentado; el código cartográfico Qa se utiliza aquí para representar los complejos volcánicos cuaternarios.",
+        edafologia: "La formación de estratovolcanes está ligada al ascenso de magmas originados en un contexto de subducción. El informe describe coladas de lava y actividad volcánica sucesiva que construyeron el paisaje actual. Para esta escena conviene explicar cómo los volcanes modernos se relacionan con la fase más reciente del ciclo Atitlán III, sin atribuir a Qa propiedades litológicas específicas que el informe no desarrolla."
     },
     "7": {
         simbolo: "Tg",
-        resumen: "Granitos y granodioritas: rocas plutónicas que se forman cuando parte del magma se enfría y cristaliza dentro de la corteza terrestre, sin alcanzar la superficie. El informe menciona afloramientos al oeste, sur y sureste del lago, en áreas como San Pablo La Laguna, San Juan La Laguna, San Pedro La Laguna y Santiago Atitlán. Su edad exacta es incierta, aunque se considera probable una edad miocena. Fuente: GARICLA (2011), p. 16 del PDF.",
-        edafologia: "Son rocas muy duras y consolidadas, de grano fino a grueso. En superficie pueden meteorizarse en bloques, debido a sus fracturas, y dar lugar a desprendimientos o deslizamientos. Su presencia es importante porque muestra que la historia volcánica de Atitlán también incluye magmas que quedaron solidificados bajo tierra y que posteriormente quedaron expuestos por la erosión. Fuente: GARICLA (2011), pp. 10 y 16 del PDF."
+        resumen: "Granitos y granodioritas: rocas plutónicas que se forman cuando parte del magma se enfría y cristaliza dentro de la corteza terrestre, sin alcanzar la superficie. El informe menciona afloramientos al oeste, sur y sureste del lago, en áreas como San Pablo La Laguna, San Juan La Laguna, San Pedro La Laguna y Santiago Atitlán. Su edad exacta es incierta, aunque se considera probable una edad miocena.",
+        edafologia: "Son rocas muy duras y consolidadas, de grano fino a grueso. En superficie pueden meteorizarse en bloques, debido a sus fracturas, y dar lugar a desprendimientos o deslizamientos. Su presencia es importante porque muestra que la historia volcánica de Atitlán también incluye magmas que quedaron solidificados bajo tierra y que posteriormente quedaron expuestos por la erosión."
     }
 };
 
@@ -1048,6 +1070,11 @@ const GEO_MUESTRAS = {
     "7": [
         { archivo: "granitos_granodioritas", nombre: "Granitos y granodioritas" },
         { archivo: "cortes_geologicos", nombre: "Cortes geológicos de la cuenca" }
+    ],
+    "8": [
+        { archivo: "batimetria_2014", nombre: "Batimetría del lago en 2014 y perfiles del fondo" },
+        { archivo: "batimetria_1975", nombre: "Batimetría de 1975 y perfiles comparativos" },
+        { archivo: "curva_hipsografica", nombre: "Curva hipsográfica del lago" }
     ]
 };
 
@@ -1071,6 +1098,7 @@ const calloutCore = document.getElementById("calloutCore");
 const sceneButtons = [...document.querySelectorAll(".scene-key")];
 const rockGallery = document.getElementById("rockGallery");
 const mediaSection = document.getElementById("mediaSection");
+const lakeDepthLegend = document.getElementById("lakeDepthLegend");
 const floorLabels = document.getElementById("floorLabels");
 const altLegend = document.getElementById("altLegend");
 const altLegendRows = document.getElementById("altLegendRows");
@@ -1079,7 +1107,7 @@ const altLegendRows = document.getElementById("altLegendRows");
    THREE
 ============================================================ */
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xb9ced3);
+scene.background = new THREE.Color(0xffffff);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 1, 250000);
 camera.up.set(0, 0, 1);
@@ -1114,6 +1142,7 @@ let bbox, centroX, centroY, anchoTerreno, altoTerreno;
 let elevMin = Infinity, elevMax = -Infinity;
 let terreno, materialBase, materialGeologia;
 let texturaGeologia, texturaLecho, texturaAlturaDEM, texturaPisos;
+let rangoBatimetricoDEM = null;
 let materialPisos;
 let aguaGrupo, aguaMaterial, nivelAguaOriginal, nivelAguaFinal;
 let centroLagoLocal = new THREE.Vector2(0, 0);
@@ -1663,23 +1692,91 @@ async function crearTexturaLecho(canvasGeologia) {
     if (!response.ok) throw new Error("No se pudo preparar la máscara del lago");
     const lago = await response.json();
 
+    // Para móviles, una textura de 1024 px conserva suficiente detalle y
+    // evita el coste de procesar millones de píxeles innecesariamente.
+    const w = Math.min(1024, canvasGeologia.width);
+    const h = Math.max(2, Math.round(w * altoTerreno / anchoTerreno));
     const canvas = document.createElement("canvas");
-    canvas.width = canvasGeologia.width;
-    canvas.height = canvasGeologia.height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(canvasGeologia, 0, 0);
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(canvasGeologia, 0, 0, w, h);
 
+    const maskCanvas = document.createElement("canvas");
+    maskCanvas.width = w;
+    maskCanvas.height = h;
+    const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
     for (const feature of lago.features || []) {
         if (!feature.geometry) continue;
-        let poligonos = [];
-        if (feature.geometry.type === "Polygon") poligonos = [feature.geometry.coordinates];
-        else if (feature.geometry.type === "MultiPolygon") poligonos = feature.geometry.coordinates;
-        for (const poligono of poligonos) pintarPoligono(ctx, poligono, canvas, "rgb(236,238,239)");
+        const polygons = feature.geometry.type === "Polygon"
+            ? [feature.geometry.coordinates]
+            : feature.geometry.type === "MultiPolygon" ? feature.geometry.coordinates : [];
+        for (const polygon of polygons) pintarPoligono(maskCtx, polygon, maskCanvas, "#ffffff");
+    }
+    const mask = maskCtx.getImageData(0, 0, w, h).data;
+    const image = ctx.getImageData(0, 0, w, h);
+    const pixels = image.data;
+
+    // Rango real del DEM dentro de la huella del lago. El raster del
+    // repositorio ya tiene valores batimétricos, no solo el espejo de agua.
+    let fondoMin = Infinity, fondoMax = -Infinity;
+    for (let py = 0; py < h; py++) {
+        const sy = Math.min(demHeight - 1, Math.round((py + .5) / h * demHeight));
+        for (let px = 0; px < w; px++) {
+            const index = (py * w + px) * 4;
+            if (mask[index + 3] < 128) continue;
+            const sx = Math.min(demWidth - 1, Math.round((px + .5) / w * demWidth));
+            const altura = demRaster[sy * demWidth + sx];
+            if (!valorValido(altura)) continue;
+            fondoMin = Math.min(fondoMin, altura);
+            fondoMax = Math.max(fondoMax, altura);
+        }
+    }
+    if (!Number.isFinite(fondoMin) || !Number.isFinite(fondoMax) || fondoMax - fondoMin < 1) {
+        fondoMin = COTA_LAGO - 327.56;
+        fondoMax = COTA_LAGO;
+    }
+    rangoBatimetricoDEM = { fondoMin, fondoMax, profundidadMaximaPublicada: 327.56 };
+
+    // Profundidad creciente: turquesa -> azul claro -> azul -> azul oscuro.
+    // Los 327.56 m son el máximo publicado; la variación espacial proviene
+    // del DEM del proyecto y no de las isolíneas de la figura del artículo.
+    const stops = [
+        [0.00, [167, 227, 205]],
+        [0.25, [88, 190, 210]],
+        [0.50, [41, 134, 192]],
+        [0.76, [36, 86, 154]],
+        [1.00, [33, 47, 104]]
+    ];
+    function colorProfundidad(t) {
+        const v = Math.max(0, Math.min(1, t));
+        let k = 0;
+        while (k < stops.length - 2 && v > stops[k + 1][0]) k++;
+        const [a, ca] = stops[k], [b, cb] = stops[k + 1];
+        const f = (v - a) / (b - a);
+        return [0, 1, 2].map(i => Math.round(ca[i] + (cb[i] - ca[i]) * f));
     }
 
+    for (let py = 0; py < h; py++) {
+        const sy = Math.min(demHeight - 1, Math.round((py + .5) / h * demHeight));
+        for (let px = 0; px < w; px++) {
+            const idx = (py * w + px) * 4;
+            if (mask[idx + 3] < 128) continue;
+            const sx = Math.min(demWidth - 1, Math.round((px + .5) / w * demWidth));
+            const altura = demRaster[sy * demWidth + sx];
+            if (!valorValido(altura)) continue;
+            const fraccion = (fondoMax - altura) / (fondoMax - fondoMin);
+            const [r, g, b] = colorProfundidad(fraccion);
+            pixels[idx] = r;
+            pixels[idx + 1] = g;
+            pixels[idx + 2] = b;
+            pixels[idx + 3] = 255;
+        }
+    }
+    ctx.putImageData(image, 0, 0);
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
     return tex;
 }
 
@@ -1704,8 +1801,7 @@ function animarAgua(vaciar) {
     objetivoLagoVacio = vaciar;
     teclaActiva = null;
     const token = ++lakeAnimToken;
-    cerrarInfo(false);
-    limpiarGaleria();
+    // La ficha batimétrica permanece visible durante el vaciado y llenado.
     marcarBoton("8");
 
     const inicio = performance.now();
@@ -1950,7 +2046,11 @@ function valoresUnicos(features, nombres) {
 
 function tituloUnidad(features, simbolo) {
     const vals = valoresUnicos(features, ["Litología_", "Litologia_", "Litología", "Litologia", "LITOLOGIA"]);
-    return vals[0] || `Unidad geológica ${simbolo}`;
+    let texto = vals[0] || `Unidad geológica ${simbolo}`;
+    if (texto.toLowerCase().startsWith(simbolo.toLowerCase())) {
+        texto = texto.slice(simbolo.length).replace(/^[\s:–—-]+/, "");
+    }
+    return texto.replace(/\s*[-–—]\s*/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
 function descripcionUnidad(features) {
@@ -2220,6 +2320,7 @@ function limpiarGaleria() {
     rockGallery.setAttribute("aria-hidden", "true");
     rockGallery.replaceChildren();
     mediaSection.hidden = true;
+    lakeDepthLegend.hidden = true;
     rockGallery.style.setProperty("--gallery-count", "5");
     document.body.classList.remove("gallery-open");
 }
@@ -2745,6 +2846,22 @@ controls.addEventListener("start", () => {
    1–9 se activan normalmente. Para 10–13, la tecla 1 espera una
    fracción de segundo para detectar el segundo dígito.
 ============================================================ */
+function mostrarFichaBatimetrica() {
+    // Nota: las cifras se toman de la tabla de resultados del estudio de 2018.
+    // Se mantienen sin referencias a números de página en el texto visible.
+    abrirInfo({
+        codigo: "8",
+        titulo: "Batimetría y morfometría del lago de Atitlán",
+        geologia: "El lago de Atitlán ocupa una cuenca endorreica de origen volcánico en el departamento de Sololá. El levantamiento batimétrico de 2014 registró una superficie de 125.77 km², un volumen de 25.46 km³, un perímetro de 101.67 km y una longitud máxima de 18.91 km. Su profundidad máxima es de 327.56 m y la profundidad media indicada en la tabla de resultados es de 202.40 m.",
+        edafologia: "El fondo del lago forma una cubeta profunda y cóncava, con dos bahías. Las pendientes subacuáticas son más fuertes en sectores del norte y este, mientras que el sur presenta pendientes relativamente suaves. La comparación de los levantamientos de 1975 y 2014 muestra una forma general semejante, con diferencias principalmente cerca de las orillas. Conocer la batimetría ayuda a comprender la estratificación térmica, la circulación, el oxígeno y la distribución de nutrientes. La animación de vaciado del visor es ilustrativa: el color del lecho representa profundidades aproximadas calculadas desde el DEM local, no un vaciado físico medido del lago.",
+        seccion1: "Descripción del lago",
+        seccion2: "Características del fondo e importancia de la batimetría",
+        conCallout: false
+    });
+    mostrarGaleriaGeologia("8");
+    lakeDepthLegend.hidden = false;
+}
+
 function ejecutarEscena(tecla) {
     tecla = String(tecla);
     if (tecla !== "8") cerrarCamaraLago();
@@ -2757,6 +2874,7 @@ function ejecutarEscena(tecla) {
         cerrarInfo(false);
         document.body.classList.add("lake-camera-open");
         actualizarModoCamaraLago();
+        mostrarFichaBatimetrica();
         const vaciar = !objetivoLagoVacio;
         if (modoCamaraLago === "libre" || camaraFijaLista) {
             vaciadoPendiente = null;
@@ -2893,7 +3011,15 @@ function actualizarPueblos3D() {
         const s=p.punto.clone().project(camera);
         const enVista=s.z>=-1 && s.z<=1 && s.x>=-1 && s.x<=1 && s.y>=-1 && s.y<=1;
         p.elemento.style.display=enVista?"block":"none";
-        if(enVista) {p.elemento.style.left=`${rect.left+(s.x+1)*rect.width/2}px`;p.elemento.style.top=`${rect.top+(1-s.y)*rect.height/2}px`;}
+        if(enVista) {
+            p.elemento.style.left=`${rect.left+(s.x+1)*rect.width/2}px`;
+            p.elemento.style.top=`${rect.top+(1-s.y)*rect.height/2}px`;
+            // Etiquetas más pequeñas al alejar el modelo; grandes solo al acercarse.
+            const distancia = camera.position.distanceTo(p.punto);
+            const referencia = Math.max(anchoTerreno, altoTerreno) * 1.15;
+            const escala = THREE.MathUtils.clamp(referencia / Math.max(distancia, 1), 0.48, 1.08);
+            p.elemento.style.setProperty("--town-scale", escala.toFixed(3));
+        }
     }
 }
 /* ============================================================
