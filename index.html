@@ -672,6 +672,44 @@ body.info-open #infoRail { transform: translateX(0); }
     #sceneDock { height: 48px; }
     .scene-key { width: 35px; height: 35px; min-width: 35px; flex-basis: 35px; }
 }
+
+/* Controles exclusivos de la escena 8: no interfieren con el modelo. */
+#lakeCameraTools {
+    display: none;
+    position: fixed;
+    z-index: 88;
+    left: 50%;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 76px);
+    transform: translateX(-50%);
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 8px 11px;
+    border-radius: 16px;
+    background: rgba(13, 39, 54, .86);
+    border: 1px solid rgba(255,255,255,.26);
+    box-shadow: 0 9px 24px rgba(0,0,0,.19);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+}
+body.lake-camera-open #lakeCameraTools { display: flex; }
+.lake-camera-button {
+    padding: 9px 12px;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 10px;
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+}
+.lake-camera-button.is-active { background: #d9f1fa; color: #113b54; }
+.lake-camera-button:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+@media (max-width: 680px) {
+    #lakeCameraTools { max-width: calc(100vw - 16px); gap: 5px; padding: 6px; }
+    .lake-camera-button { font-size: 11px; padding: 9px 7px; }
+}
+
 </style>
 
 </head>
@@ -729,6 +767,14 @@ body.info-open #infoRail { transform: translateX(0); }
     <button class="scene-key" type="button" data-key="12" data-label="Herbáceas" aria-label="Escena 12, flora herbácea">12</button>
     <button class="scene-key" type="button" data-key="13" data-label="Arbóreas" aria-label="Escena 13, flora arbórea">13</button>
 </nav>
+
+
+<!-- Solo visible al seleccionar la escena 8. -->
+<div id="lakeCameraTools" role="group" aria-label="Controles de cámara del lago">
+    <button id="lakeAutoCamera" class="lake-camera-button is-active" type="button" aria-pressed="true" title="Cámara cenital antes de vaciar o llenar">Cenital automática</button>
+    <button id="lakeFreeCamera" class="lake-camera-button" type="button" aria-pressed="false" title="Conservar el ángulo elegido al vaciar o llenar">Vista libre</button>
+    <button id="lakeReturnZenith" class="lake-camera-button" type="button" title="Volver a ver el lago desde arriba">↑ Volver al cenit</button>
+</div>
 
 <svg id="calloutSvg" aria-hidden="true">
     <polyline id="calloutLine" points=""></polyline>
@@ -975,6 +1021,11 @@ let geologiaGeoJSON;
 let puntoCallout3D = null;
 let teclaActiva = null;
 let cameraAnimToken = 0;
+let modoCamaraLago = "cenital";
+let vaciadoPendiente = null;
+const lakeAutoCamera = document.getElementById("lakeAutoCamera");
+const lakeFreeCamera = document.getElementById("lakeFreeCamera");
+const lakeReturnZenith = document.getElementById("lakeReturnZenith");
 let modoEcologico = false;
 let puntosPiso3D = [];
 let pisoLabelElements = [];
@@ -2473,9 +2524,92 @@ function activarEscena(tecla) {
 
 
 /* ============================================================
+   ESCENA 8: CÁMARA CENITAL Y VISTA LIBRE
+   Los límites se calculan de la propia geometría del lago.
+============================================================ */
+function actualizarModoCamaraLago() {
+    const esCenital = modoCamaraLago === "cenital";
+    lakeAutoCamera.classList.toggle("is-active", esCenital);
+    lakeFreeCamera.classList.toggle("is-active", !esCenital);
+    lakeAutoCamera.setAttribute("aria-pressed", String(esCenital));
+    lakeFreeCamera.setAttribute("aria-pressed", String(!esCenital));
+}
+
+function cerrarCamaraLago() {
+    vaciadoPendiente = null;
+    document.body.classList.remove("lake-camera-open");
+}
+
+function encuadreCenitalLago() {
+    if (!aguaGrupo || !aguaGrupo.children.length) return null;
+    const caja = new THREE.Box3();
+    for (const mesh of aguaGrupo.children) {
+        mesh.geometry.computeBoundingBox();
+        caja.union(mesh.geometry.boundingBox);
+    }
+    if (caja.isEmpty()) return null;
+
+    const centro = new THREE.Vector3(centroLagoLocal.x, centroLagoLocal.y, nivelAguaOriginal);
+    const mitadX = Math.max(1, caja.max.x - centro.x, centro.x - caja.min.x);
+    const mitadY = Math.max(1, caja.max.y - centro.y, centro.y - caja.min.y);
+    const rect = visor.getBoundingClientRect();
+    const aspecto = Math.max(0.25, rect.width / Math.max(1, rect.height));
+    const fovVertical = THREE.MathUtils.degToRad(camera.fov);
+    const fovHorizontal = 2 * Math.atan(Math.tan(fovVertical / 2) * aspecto);
+    const distancia = 1.24 * Math.max(
+        mitadY / Math.tan(fovVertical / 2),
+        mitadX / Math.tan(fovHorizontal / 2)
+    );
+    // Pequeña desviación del eje exacto evita singularidades en OrbitControls.
+    const pos = centro.clone().add(new THREE.Vector3(distancia * 0.00001, 0, distancia));
+    return { pos, target: centro };
+}
+
+function irAlCenit(alTerminar = null) {
+    const vista = encuadreCenitalLago();
+    if (!vista) {
+        if (alTerminar) alTerminar();
+        return;
+    }
+    animarCamara(vista.pos, vista.target, alTerminar);
+}
+
+lakeAutoCamera.addEventListener("click", () => {
+    modoCamaraLago = "cenital";
+    actualizarModoCamaraLago();
+    irAlCenit(() => {
+        if (vaciadoPendiente === null) return;
+        const destino = vaciadoPendiente;
+        vaciadoPendiente = null;
+        animarAgua(destino);
+    });
+});
+lakeFreeCamera.addEventListener("click", () => {
+    modoCamaraLago = "libre";
+    actualizarModoCamaraLago();
+    // Cancelar la transición anterior, conservando posición y orientación.
+    cameraAnimToken++;
+    if (vaciadoPendiente !== null) {
+        const vaciar = vaciadoPendiente;
+        vaciadoPendiente = null;
+        animarAgua(vaciar);
+    }
+});
+lakeReturnZenith.addEventListener("click", () => {
+    modoCamaraLago = "cenital";
+    actualizarModoCamaraLago();
+    irAlCenit(() => {
+        if (vaciadoPendiente === null) return;
+        const destino = vaciadoPendiente;
+        vaciadoPendiente = null;
+        animarAgua(destino);
+    });
+});
+
+/* ============================================================
    CÁMARA SUAVE, REINICIABLE
 ============================================================ */
-function animarCamara(destinoPos, destinoTarget) {
+function animarCamara(destinoPos, destinoTarget, alTerminar = null) {
     const token = ++cameraAnimToken;
     const inicio = performance.now();
     const duracion = 1850;
@@ -2490,6 +2624,7 @@ function animarCamara(destinoPos, destinoTarget) {
         controls.target.lerpVectors(targetInicial, destinoTarget, s);
         controls.update();
         if (t < 1) requestAnimationFrame(frame);
+        else if (alTerminar) alTerminar();
     }
     requestAnimationFrame(frame);
 }
@@ -2497,6 +2632,13 @@ function animarCamara(destinoPos, destinoTarget) {
 controls.addEventListener("start", () => {
     // Si el operador toma el control manual, se cancela la interpolación activa.
     cameraAnimToken++;
+    // Si el público gira la cámara durante la transición, comienza el vaciado
+    // desde el ángulo elegido sin volver a forzar la vista cenital.
+    if (vaciadoPendiente !== null) {
+        const vaciar = vaciadoPendiente;
+        vaciadoPendiente = null;
+        animarAgua(vaciar);
+    }
 });
 
 /* ============================================================
@@ -2506,13 +2648,34 @@ controls.addEventListener("start", () => {
 ============================================================ */
 function ejecutarEscena(tecla) {
     tecla = String(tecla);
+    if (tecla !== "8") cerrarCamaraLago();
     if (ESCENAS[tecla]) {
         activarEscena(tecla);
         return;
     }
     if (tecla === "8") {
         salirModoEcologico(true);
-        animarAgua(!objetivoLagoVacio);
+        cerrarInfo(false);
+        document.body.classList.add("lake-camera-open");
+        actualizarModoCamaraLago();
+        // El estado se invierte exactamente una vez, aunque se pulse 8
+        // mientras una animación de agua o cámara está en curso.
+        const vaciar = !objetivoLagoVacio;
+        if (modoCamaraLago === "libre") {
+            vaciadoPendiente = null;
+            cameraAnimToken++;
+            animarAgua(vaciar);
+        } else {
+            vaciadoPendiente = vaciar;
+            irAlCenit(() => {
+                if (vaciadoPendiente === null) return;
+                const destino = vaciadoPendiente;
+                vaciadoPendiente = null;
+                animarAgua(destino);
+            });
+            estado.textContent = "Posicionando cámara cenital sobre el lago…";
+            marcarBoton("8");
+        }
         return;
     }
     if (BIO_ESCENAS[tecla]) {
