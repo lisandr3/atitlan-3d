@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cuenca del Lago de Atitlán - Visor 3D</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>
 :root {
     --rail-w: clamp(360px, 30vw, 460px);
@@ -710,6 +711,21 @@ body.lake-camera-open #lakeCameraTools { display: flex; }
     .lake-camera-button { font-size: 11px; padding: 9px 7px; }
 }
 
+
+/* MAPA BASE — no interfiere con el canvas Three.js */
+#mapOpenButton { position:fixed; bottom:102px; left:20px; z-index:120; border:1px solid #c9d8df; border-radius:999px; padding:11px 15px; background:#f7fbff; color:#173e5d; font-weight:800; cursor:pointer; box-shadow:0 5px 22px #14354a36; }
+#mapPanel { position:fixed; left:18px; bottom:148px; z-index:125; width:min(420px,calc(100vw - 36px)); height:min(510px,calc(100dvh - 215px)); background:#f7fafb; border:1px solid #b9cbd3; border-radius:17px; box-shadow:0 15px 42px #16344555; display:none; overflow:hidden; flex-direction:column; }
+body.map-open #mapPanel {display:flex;}
+#mapPanelHeader { display:flex; flex-shrink:0; padding:12px 14px; background:#173d59; color:white; align-items:center; justify-content:space-between; gap:8px; }
+#mapPanelHeader strong {font-size:14px;} #mapPanelHeader button { cursor:pointer; border:1px solid #8fabbd; background:#f6f9fc; color:#173d59; border-radius:8px; padding:5px 9px; font-weight:700; }
+#mapSwitches {display:flex; align-items:center; gap:15px; padding:8px 12px; font-size:12px; flex-wrap:wrap; background:#fff;}
+#mapSwitches label {cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:650;} #mapSwitches input {accent-color:#194d6f;}
+#leafletMap {flex:1; min-height:150px; width:100%; background:#dfe9ec;}
+#mapStatus {font-size:11px; padding:7px 12px; color:#365367; background:#f7fafb; min-height:29px;}
+.map-town-pin {background:#fff; border:2px solid #153f60; width:12px!important; height:12px!important; border-radius:50%; box-shadow:0 0 0 2px #ffffff88;}
+.leaflet-container {font-family:inherit;}
+@media(max-width:600px){#mapOpenButton{bottom:90px;left:10px;padding:9px 12px;font-size:12px;}#mapPanel{left:8px;bottom:135px;width:calc(100vw - 16px);height:min(420px,calc(100dvh - 190px));}}
+
 </style>
 
 </head>
@@ -776,6 +792,20 @@ body.lake-camera-open #lakeCameraTools { display: flex; }
     <button id="lakeReturnZenith" class="lake-camera-button" type="button" title="Volver a ver el lago desde arriba">↑ Volver al cenit</button>
 </div>
 
+
+<!-- Mapa Leaflet: panel independiente de Three.js -->
+<button id="mapOpenButton" type="button" aria-controls="mapPanel" aria-expanded="false">🗺 Mapa y pueblos</button>
+<section id="mapPanel" aria-label="Mapa base de la cuenca del lago de Atitlán">
+  <div id="mapPanelHeader"><strong>Ubicación de pueblos · Atitlán</strong><button id="mapCloseButton" type="button" aria-label="Cerrar mapa">✕ Cerrar</button></div>
+  <div id="mapSwitches">
+    <label><input type="checkbox" id="mapTowns" checked> Pueblos</label>
+    <label><input type="checkbox" id="mapGeology"> Geología</label>
+    <button id="mapFit" type="button" style="font-size:11px;cursor:pointer;padding:4px 7px">Ver cuenca</button>
+  </div>
+  <div id="leafletMap" role="application" aria-label="Mapa interactivo OpenStreetMap"></div>
+  <div id="mapStatus" role="status">Selecciona un pueblo para enfocarlo en el relieve 3D.</div>
+</section>
+
 <svg id="calloutSvg" aria-hidden="true">
     <polyline id="calloutLine" points=""></polyline>
     <circle id="calloutHalo" cx="0" cy="0" r="6.5"></circle>
@@ -783,6 +813,8 @@ body.lake-camera-open #lakeCameraTools { display: flex; }
 </svg>
 
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script>
 <script type="importmap">
 {
   "imports": {
@@ -1018,6 +1050,7 @@ let objetivoLagoVacio = false;
 let lakeAnimToken = 0;
 let lechoMix = 0;
 let geologiaGeoJSON;
+let estiloGeologicoMapa = null;
 let puntoCallout3D = null;
 let teclaActiva = null;
 let cameraAnimToken = 0;
@@ -1243,6 +1276,7 @@ async function cargarGeologia() {
     const [responseGeo, estilo] = await Promise.all([fetch(RUTA_GEOLOGIA), leerQML()]);
     if (!responseGeo.ok) throw new Error("No se pudo cargar geologia.geojson");
     geologiaGeoJSON = await responseGeo.json();
+    estiloGeologicoMapa = estilo;
 
     const canvas = document.createElement("canvas");
     canvas.width = TEXTURA_RES;
@@ -2743,6 +2777,150 @@ function ajustarRenderer() {
 window.addEventListener("resize", ajustarRenderer);
 new ResizeObserver(ajustarRenderer).observe(visor);
 ajustarRenderer();
+
+
+/* ============================================================
+   LEAFLET — mapa de referencia y sincronización con el modelo 3D
+   ESRI:103598: GTM / WGS84, unidades en metros.
+   El mapa y las teselas requieren internet; el DEM sigue local.
+============================================================ */
+let mapaLeaflet = null, pueblosLayer = null, geologiaLayer = null;
+const mapPanel = document.getElementById("mapPanel");
+const mapOpenButton = document.getElementById("mapOpenButton");
+const mapStatus = document.getElementById("mapStatus");
+const mapGeologyCheck = document.getElementById("mapGeology");
+const mapTownsCheck = document.getElementById("mapTowns");
+// Coordenadas aproximadas de los centros urbanos, no límites municipales.
+const PUEBLOS_ATITLAN = [
+    {nombre:"Panajachel", lat:14.7419, lon:-91.1568},
+    {nombre:"Santa Catarina Palopó", lat:14.7238, lon:-91.1359},
+    {nombre:"San Antonio Palopó", lat:14.6923, lon:-91.1164},
+    {nombre:"San Lucas Tolimán", lat:14.5947, lon:-91.1466},
+    {nombre:"Santiago Atitlán", lat:14.6380, lon:-91.2305},
+    {nombre:"San Pedro La Laguna", lat:14.6930, lon:-91.2720},
+    {nombre:"San Juan La Laguna", lat:14.6945, lon:-91.2867},
+    {nombre:"San Pablo La Laguna", lat:14.7209, lon:-91.2724},
+    {nombre:"San Marcos La Laguna", lat:14.7230, lon:-91.2580},
+    {nombre:"Santa Cruz La Laguna", lat:14.7463, lon:-91.2070}
+];
+function configurarProyeccionMapa() {
+    if (typeof proj4 === "undefined") throw new Error("No se pudo cargar la librería de proyecciones proj4.");
+    proj4.defs("ATITLAN_GTM", "+proj=tmerc +lat_0=0 +lon_0=-90.5 +k=0.9998 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs");
+}
+function latLonAGTM(lat, lon) {
+    return proj4("EPSG:4326", "ATITLAN_GTM", [lon, lat]);
+}
+function coordenadaGTMALatLng(coords) {
+    const c = proj4("ATITLAN_GTM", "EPSG:4326", [coords[0], coords[1]]);
+    return L.latLng(c[1], c[0]);
+}
+function centrarMapaEnCuenca() {
+    if (!mapaLeaflet) return;
+    if (bbox) {
+        const sw = coordenadaGTMALatLng([bbox[0], bbox[1]]);
+        const ne = coordenadaGTMALatLng([bbox[2], bbox[3]]);
+        mapaLeaflet.fitBounds(L.latLngBounds(sw, ne), {padding:[14,14], maxZoom:12});
+    } else mapaLeaflet.setView([14.686,-91.20],11);
+}
+function enfocarPuebloEn3D(pueblo) {
+    if (!terreno || !bbox) {mapStatus.textContent="El relieve 3D aún está cargando.";return;}
+    const [x,y] = latLonAGTM(pueblo.lat,pueblo.lon);
+    const local = gtmALocal(x,y);
+    const altitud = elevacionEnGTM(x,y);
+    if (altitud === null) {
+        mapStatus.textContent=`${pueblo.nombre}: fuera del DEM disponible; puedes verlo en el mapa 2D.`;
+        return;
+    }
+    cerrarInfo(false);
+    puntoCallout3D = null;
+    const z = elevacionAZ(altitud);
+    const escala = Math.max(anchoTerreno,altoTerreno);
+    const distancia = THREE.MathUtils.clamp(escala*0.15,3500,7500);
+    const destino = new THREE.Vector3(local.x+distancia*.65,local.y-distancia*.85,z+distancia*.75);
+    const objetivo = new THREE.Vector3(local.x,local.y,z+150);
+    animarCamara(destino,objetivo);
+    mapStatus.textContent=`Enfocando ${pueblo.nombre} en el modelo 3D.`;
+}
+function crearMarcadoresPueblos() {
+    pueblosLayer = L.layerGroup();
+    for (const pueblo of PUEBLOS_ATITLAN) {
+        const marcador = L.circleMarker([pueblo.lat,pueblo.lon], {
+            radius:5, color:"#123e61", weight:2, fillColor:"#ffffff",fillOpacity:1
+        });
+        marcador.bindTooltip(pueblo.nombre,{direction:"top"});
+        const boton = document.createElement("button");
+        boton.type="button"; boton.textContent="Enfocar en 3D";
+        boton.style.cssText="cursor:pointer;border-radius:6px;padding:5px 8px;margin-top:6px;";
+        const popup = document.createElement("div");
+        const nombre = document.createElement("strong"); nombre.textContent=pueblo.nombre;
+        popup.append(nombre, document.createElement("br"),boton);
+        boton.addEventListener("click",()=>enfocarPuebloEn3D(pueblo));
+        marcador.bindPopup(popup);
+        marcador.addTo(pueblosLayer);
+    }
+    pueblosLayer.addTo(mapaLeaflet);
+}
+function crearCapaGeologicaMapa() {
+    if (!mapaLeaflet || geologiaLayer) return;
+    if (!geologiaGeoJSON) {mapStatus.textContent="La geología todavía se está cargando.";return;}
+    mapStatus.textContent="Preparando polígonos geológicos georreferenciados…";
+    // Se reutilizan los mismos GeoJSON/QML del modelo, sin rasterizar la geología.
+    geologiaLayer = L.geoJSON(geologiaGeoJSON, {
+        coordsToLatLng: coordenadaGTMALatLng,
+        renderer: L.canvas({padding:0.2}),
+        interactive: false,
+        style: feature => {
+            let fillColor="#bcae8f";
+            if (estiloGeologicoMapa?.campo) {
+                const valor=String(feature.properties?.[estiloGeologicoMapa.campo]??"");
+                const color=estiloGeologicoMapa.categorias.get(valor);
+                if(color) fillColor=colorQgisCSS(color);
+            }
+            return {color:"#263e4c",weight:0.25,fillColor,fillOpacity:0.61};
+        }
+    });
+    if(mapGeologyCheck.checked) geologiaLayer.addTo(mapaLeaflet);
+    mapStatus.textContent="Geología activada: colores del QML del proyecto.";
+}
+function inicializarMapaLeaflet() {
+    if(mapaLeaflet) return;
+    if(typeof L==="undefined") throw new Error("Leaflet no se pudo cargar. Revisa la conexión a internet.");
+    configurarProyeccionMapa();
+    mapaLeaflet=L.map("leafletMap",{zoomControl:true,preferCanvas:true});
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mapaLeaflet);
+    crearMarcadoresPueblos();
+    centrarMapaEnCuenca();
+    L.DomEvent.disableClickPropagation(mapPanel);
+    L.DomEvent.disableScrollPropagation(mapPanel);
+}
+function abrirCerrarMapa(abrir) {
+    document.body.classList.toggle("map-open",abrir);
+    mapOpenButton.setAttribute("aria-expanded",String(abrir));
+    mapOpenButton.textContent=abrir?"🗺 Ocultar mapa":"🗺 Mapa y pueblos";
+    if(!abrir) return;
+    try {
+        inicializarMapaLeaflet();
+        requestAnimationFrame(()=>{mapaLeaflet.invalidateSize();centrarMapaEnCuenca();});
+        if(mapGeologyCheck.checked) crearCapaGeologicaMapa();
+    } catch (e) {mapStatus.textContent=e.message;console.error(e);}
+}
+mapOpenButton.addEventListener("click",()=>abrirCerrarMapa(!document.body.classList.contains("map-open")));
+document.getElementById("mapCloseButton").addEventListener("click",()=>abrirCerrarMapa(false));
+document.getElementById("mapFit").addEventListener("click",centrarMapaEnCuenca);
+mapTownsCheck.addEventListener("change",()=>{
+    if(!mapaLeaflet || !pueblosLayer) return;
+    if(mapTownsCheck.checked) pueblosLayer.addTo(mapaLeaflet);else mapaLeaflet.removeLayer(pueblosLayer);
+});
+mapGeologyCheck.addEventListener("change",()=>{
+    if(!mapaLeaflet) return;
+    if(mapGeologyCheck.checked) crearCapaGeologicaMapa();
+    if(geologiaLayer) {
+        if(mapGeologyCheck.checked) geologiaLayer.addTo(mapaLeaflet);
+        else mapaLeaflet.removeLayer(geologiaLayer);
+    }
+});
 
 /* ============================================================
    LOOP
