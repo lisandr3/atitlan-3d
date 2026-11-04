@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Cuenca del Lago de Atitlán - Visor 3D</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>
 :root {
     --rail-w: clamp(360px, 30vw, 460px);
@@ -712,19 +711,15 @@ body.lake-camera-open #lakeCameraTools { display: flex; }
 }
 
 
-/* MAPA BASE — no interfiere con el canvas Three.js */
-#mapOpenButton { position:fixed; bottom:102px; left:20px; z-index:120; border:1px solid #c9d8df; border-radius:999px; padding:11px 15px; background:#f7fbff; color:#173e5d; font-weight:800; cursor:pointer; box-shadow:0 5px 22px #14354a36; }
-#mapPanel { position:fixed; left:18px; bottom:148px; z-index:125; width:min(420px,calc(100vw - 36px)); height:min(510px,calc(100dvh - 215px)); background:#f7fafb; border:1px solid #b9cbd3; border-radius:17px; box-shadow:0 15px 42px #16344555; display:none; overflow:hidden; flex-direction:column; }
-body.map-open #mapPanel {display:flex;}
-#mapPanelHeader { display:flex; flex-shrink:0; padding:12px 14px; background:#173d59; color:white; align-items:center; justify-content:space-between; gap:8px; }
-#mapPanelHeader strong {font-size:14px;} #mapPanelHeader button { cursor:pointer; border:1px solid #8fabbd; background:#f6f9fc; color:#173d59; border-radius:8px; padding:5px 9px; font-weight:700; }
-#mapSwitches {display:flex; align-items:center; gap:15px; padding:8px 12px; font-size:12px; flex-wrap:wrap; background:#fff;}
-#mapSwitches label {cursor:pointer; display:flex; align-items:center; gap:5px; font-weight:650;} #mapSwitches input {accent-color:#194d6f;}
-#leafletMap {flex:1; min-height:150px; width:100%; background:#dfe9ec;}
-#mapStatus {font-size:11px; padding:7px 12px; color:#365367; background:#f7fafb; min-height:29px;}
-.map-town-pin {background:#fff; border:2px solid #153f60; width:12px!important; height:12px!important; border-radius:50%; box-shadow:0 0 0 2px #ffffff88;}
-.leaflet-container {font-family:inherit;}
-@media(max-width:600px){#mapOpenButton{bottom:90px;left:10px;padding:9px 12px;font-size:12px;}#mapPanel{left:8px;bottom:135px;width:calc(100vw - 16px);height:min(420px,calc(100dvh - 190px));}}
+/* El mapa base es una superficie georreferenciada bajo el DEM, no un recuadro. */
+#baseControls { position:fixed; top:68px; left:15px; z-index:46; display:flex; align-items:center; gap:10px; padding:8px 11px; color:#153953; background:rgba(255,255,255,.92); border:1px solid #c8d6dd; border-radius:12px; box-shadow:0 5px 20px #18364825; font-size:12px; font-weight:700; }
+#baseControls label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+#baseControls input {accent-color:#145374;}
+#baseAttribution {position:fixed; right:13px; bottom:8px; z-index:42; font-size:10px; color:#183c52; background:#ffffffe8; padding:3px 7px; border-radius:5px; pointer-events:none;}
+#townLabels {position:absolute; inset:0; pointer-events:none; z-index:41; overflow:hidden;}
+.townLabel {position:absolute; left:0; top:0; transform:translate(-50%,-105%); display:none; padding:4px 7px; font-size:11px; font-weight:750; color:#113a53; white-space:nowrap; border:1px solid rgba(19,66,93,.42); background:rgba(255,255,255,.92); border-radius:8px; box-shadow:0 2px 8px #0003; pointer-events:auto; cursor:pointer;}
+.townLabel::after {content:""; position:absolute; left:calc(50% - 4px); top:100%; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid #fff;}
+@media(max-width:680px){#baseControls{top:76px;left:7px;font-size:11px;padding:6px 7px;gap:6px}.townLabel{font-size:10px;padding:3px 5px}}
 
 </style>
 
@@ -733,6 +728,7 @@ body.map-open #mapPanel {display:flex;}
 
 <div id="stage">
     <div id="visor"></div>
+    <div id="townLabels" aria-label="Pueblos ubicados en el relieve"></div>
 
     <header id="mainHeader">
         <h1>Geología, Fauna y Flora de la Cuenca del Lago de Atitlán</h1>
@@ -793,18 +789,12 @@ body.map-open #mapPanel {display:flex;}
 </div>
 
 
-<!-- Mapa Leaflet: panel independiente de Three.js -->
-<button id="mapOpenButton" type="button" aria-controls="mapPanel" aria-expanded="false">🗺 Mapa y pueblos</button>
-<section id="mapPanel" aria-label="Mapa base de la cuenca del lago de Atitlán">
-  <div id="mapPanelHeader"><strong>Ubicación de pueblos · Atitlán</strong><button id="mapCloseButton" type="button" aria-label="Cerrar mapa">✕ Cerrar</button></div>
-  <div id="mapSwitches">
-    <label><input type="checkbox" id="mapTowns" checked> Pueblos</label>
-    <label><input type="checkbox" id="mapGeology"> Geología</label>
-    <button id="mapFit" type="button" style="font-size:11px;cursor:pointer;padding:4px 7px">Ver cuenca</button>
-  </div>
-  <div id="leafletMap" role="application" aria-label="Mapa interactivo OpenStreetMap"></div>
-  <div id="mapStatus" role="status">Selecciona un pueblo para enfocarlo en el relieve 3D.</div>
-</section>
+<!-- Capa cartográfica real: bajo el relieve de Three.js, no un panel. -->
+<div id="baseControls" aria-label="Capas geográficas">
+  <label><input type="checkbox" id="showBasemap" checked> Mapa base</label>
+  <label><input type="checkbox" id="showTowns" checked> Pueblos</label>
+</div>
+<div id="baseAttribution">Base: OpenStreetMap © colaboradores · Si existe mapa_base.tif: fuente indicada en QGIS</div>
 
 <svg id="calloutSvg" aria-hidden="true">
     <polyline id="calloutLine" points=""></polyline>
@@ -813,7 +803,6 @@ body.map-open #mapPanel {display:flex;}
 </svg>
 
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script>
 <script type="importmap">
 {
@@ -2780,17 +2769,16 @@ ajustarRenderer();
 
 
 /* ============================================================
-   LEAFLET — mapa de referencia y sincronización con el modelo 3D
-   ESRI:103598: GTM / WGS84, unidades en metros.
-   El mapa y las teselas requieren internet; el DEM sigue local.
+   BASE CARTOGRÁFICA GEORREFERENCIADA BAJO EL MODELO 3D
+   - Si existe data/mapa_base.tif, se usa el GeoTIFF de QGIS.
+   - Si no, un mosaico OpenStreetMap sirve como base de referencia.
+   - La base está en un plano inferior al DEM; ninguna ventana flotante.
 ============================================================ */
-let mapaLeaflet = null, pueblosLayer = null, geologiaLayer = null;
-const mapPanel = document.getElementById("mapPanel");
-const mapOpenButton = document.getElementById("mapOpenButton");
-const mapStatus = document.getElementById("mapStatus");
-const mapGeologyCheck = document.getElementById("mapGeology");
-const mapTownsCheck = document.getElementById("mapTowns");
-// Coordenadas aproximadas de los centros urbanos, no límites municipales.
+let baseTerreno = null;
+const atribucionBase = document.getElementById("baseAttribution");
+const muestraBase = document.getElementById("showBasemap");
+const muestraPueblos = document.getElementById("showTowns");
+const townLabels = document.getElementById("townLabels");
 const PUEBLOS_ATITLAN = [
     {nombre:"Panajachel", lat:14.7419, lon:-91.1568},
     {nombre:"Santa Catarina Palopó", lat:14.7238, lon:-91.1359},
@@ -2803,123 +2791,165 @@ const PUEBLOS_ATITLAN = [
     {nombre:"San Marcos La Laguna", lat:14.7230, lon:-91.2580},
     {nombre:"Santa Cruz La Laguna", lat:14.7463, lon:-91.2070}
 ];
-function configurarProyeccionMapa() {
-    if (typeof proj4 === "undefined") throw new Error("No se pudo cargar la librería de proyecciones proj4.");
+let pueblosEnPantalla = [];
+function prepararGTM() {
+    if(typeof proj4 === "undefined") throw new Error("No se ha cargado proj4.");
     proj4.defs("ATITLAN_GTM", "+proj=tmerc +lat_0=0 +lon_0=-90.5 +k=0.9998 +x_0=500000 +y_0=0 +datum=WGS84 +units=m +no_defs");
 }
-function latLonAGTM(lat, lon) {
-    return proj4("EPSG:4326", "ATITLAN_GTM", [lon, lat]);
+function aGTM(lat,lon) { return proj4("EPSG:4326","ATITLAN_GTM",[lon,lat]); }
+function desdeGTM(x,y) { return proj4("ATITLAN_GTM","EPSG:4326",[x,y]); }
+function mercatorPixel(lon,lat,zoom) {
+    const n = 256 * (2**zoom);
+    const phi = THREE.MathUtils.degToRad(Math.max(-85,Math.min(85,lat)));
+    return [n*(lon+180)/360, n*(1-Math.log(Math.tan(phi)+1/Math.cos(phi))/Math.PI)/2];
 }
-function coordenadaGTMALatLng(coords) {
-    const c = proj4("ATITLAN_GTM", "EPSG:4326", [coords[0], coords[1]]);
-    return L.latLng(c[1], c[0]);
+function rangoBase() {
+    // Un rectángulo mucho mayor que el DEM para que el paisaje cartográfico
+    // ocupe toda la vista cenital, como el encuadre de QGIS.
+    const margenX=anchoTerreno*.58, margenY=altoTerreno*.58;
+    return [bbox[0]-margenX,bbox[1]-margenY,bbox[2]+margenX,bbox[3]+margenY];
 }
-function centrarMapaEnCuenca() {
-    if (!mapaLeaflet) return;
-    if (bbox) {
-        const sw = coordenadaGTMALatLng([bbox[0], bbox[1]]);
-        const ne = coordenadaGTMALatLng([bbox[2], bbox[3]]);
-        mapaLeaflet.fitBounds(L.latLngBounds(sw, ne), {padding:[14,14], maxZoom:12});
-    } else mapaLeaflet.setView([14.686,-91.20],11);
-}
-function enfocarPuebloEn3D(pueblo) {
-    if (!terreno || !bbox) {mapStatus.textContent="El relieve 3D aún está cargando.";return;}
-    const [x,y] = latLonAGTM(pueblo.lat,pueblo.lon);
-    const local = gtmALocal(x,y);
-    const altitud = elevacionEnGTM(x,y);
-    if (altitud === null) {
-        mapStatus.textContent=`${pueblo.nombre}: fuera del DEM disponible; puedes verlo en el mapa 2D.`;
-        return;
-    }
-    cerrarInfo(false);
-    puntoCallout3D = null;
-    const z = elevacionAZ(altitud);
-    const escala = Math.max(anchoTerreno,altoTerreno);
-    const distancia = THREE.MathUtils.clamp(escala*0.15,3500,7500);
-    const destino = new THREE.Vector3(local.x+distancia*.65,local.y-distancia*.85,z+distancia*.75);
-    const objetivo = new THREE.Vector3(local.x,local.y,z+150);
-    animarCamara(destino,objetivo);
-    mapStatus.textContent=`Enfocando ${pueblo.nombre} en el modelo 3D.`;
-}
-function crearMarcadoresPueblos() {
-    pueblosLayer = L.layerGroup();
-    for (const pueblo of PUEBLOS_ATITLAN) {
-        const marcador = L.circleMarker([pueblo.lat,pueblo.lon], {
-            radius:5, color:"#123e61", weight:2, fillColor:"#ffffff",fillOpacity:1
-        });
-        marcador.bindTooltip(pueblo.nombre,{direction:"top"});
-        const boton = document.createElement("button");
-        boton.type="button"; boton.textContent="Enfocar en 3D";
-        boton.style.cssText="cursor:pointer;border-radius:6px;padding:5px 8px;margin-top:6px;";
-        const popup = document.createElement("div");
-        const nombre = document.createElement("strong"); nombre.textContent=pueblo.nombre;
-        popup.append(nombre, document.createElement("br"),boton);
-        boton.addEventListener("click",()=>enfocarPuebloEn3D(pueblo));
-        marcador.bindPopup(popup);
-        marcador.addTo(pueblosLayer);
-    }
-    pueblosLayer.addTo(mapaLeaflet);
-}
-function crearCapaGeologicaMapa() {
-    if (!mapaLeaflet || geologiaLayer) return;
-    if (!geologiaGeoJSON) {mapStatus.textContent="La geología todavía se está cargando.";return;}
-    mapStatus.textContent="Preparando polígonos geológicos georreferenciados…";
-    // Se reutilizan los mismos GeoJSON/QML del modelo, sin rasterizar la geología.
-    geologiaLayer = L.geoJSON(geologiaGeoJSON, {
-        coordsToLatLng: coordenadaGTMALatLng,
-        renderer: L.canvas({padding:0.2}),
-        interactive: false,
-        style: feature => {
-            let fillColor="#bcae8f";
-            if (estiloGeologicoMapa?.campo) {
-                const valor=String(feature.properties?.[estiloGeologicoMapa.campo]??"");
-                const color=estiloGeologicoMapa.categorias.get(valor);
-                if(color) fillColor=colorQgisCSS(color);
-            }
-            return {color:"#263e4c",weight:0.25,fillColor,fillOpacity:0.61};
+function crearPlanoBase(rango, obtenerUV, textura) {
+    const segmentos = 28;
+    const vertices=[], uvs=[], indices=[];
+    for(let iy=0; iy<=segmentos; iy++) {
+        const y=rango[3]-(rango[3]-rango[1])*iy/segmentos;
+        for(let ix=0; ix<=segmentos; ix++) {
+            const x=rango[0]+(rango[2]-rango[0])*ix/segmentos;
+            const [u,v]=obtenerUV(x,y);
+            vertices.push(x-centroX,y-centroY,-80);
+            uvs.push(u,v);
         }
-    });
-    if(mapGeologyCheck.checked) geologiaLayer.addTo(mapaLeaflet);
-    mapStatus.textContent="Geología activada: colores del QML del proyecto.";
-}
-function inicializarMapaLeaflet() {
-    if(mapaLeaflet) return;
-    if(typeof L==="undefined") throw new Error("Leaflet no se pudo cargar. Revisa la conexión a internet.");
-    configurarProyeccionMapa();
-    mapaLeaflet=L.map("leafletMap",{zoomControl:true,preferCanvas:true});
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(mapaLeaflet);
-    crearMarcadoresPueblos();
-    centrarMapaEnCuenca();
-    L.DomEvent.disableClickPropagation(mapPanel);
-    L.DomEvent.disableScrollPropagation(mapPanel);
-}
-function abrirCerrarMapa(abrir) {
-    document.body.classList.toggle("map-open",abrir);
-    mapOpenButton.setAttribute("aria-expanded",String(abrir));
-    mapOpenButton.textContent=abrir?"🗺 Ocultar mapa":"🗺 Mapa y pueblos";
-    if(!abrir) return;
-    try {
-        inicializarMapaLeaflet();
-        requestAnimationFrame(()=>{mapaLeaflet.invalidateSize();centrarMapaEnCuenca();});
-        if(mapGeologyCheck.checked) crearCapaGeologicaMapa();
-    } catch (e) {mapStatus.textContent=e.message;console.error(e);}
-}
-mapOpenButton.addEventListener("click",()=>abrirCerrarMapa(!document.body.classList.contains("map-open")));
-document.getElementById("mapCloseButton").addEventListener("click",()=>abrirCerrarMapa(false));
-document.getElementById("mapFit").addEventListener("click",centrarMapaEnCuenca);
-mapTownsCheck.addEventListener("change",()=>{
-    if(!mapaLeaflet || !pueblosLayer) return;
-    if(mapTownsCheck.checked) pueblosLayer.addTo(mapaLeaflet);else mapaLeaflet.removeLayer(pueblosLayer);
-});
-mapGeologyCheck.addEventListener("change",()=>{
-    if(!mapaLeaflet) return;
-    if(mapGeologyCheck.checked) crearCapaGeologicaMapa();
-    if(geologiaLayer) {
-        if(mapGeologyCheck.checked) geologiaLayer.addTo(mapaLeaflet);
-        else mapaLeaflet.removeLayer(geologiaLayer);
     }
+    for(let iy=0;iy<segmentos;iy++) for(let ix=0;ix<segmentos;ix++) {
+        const a=iy*(segmentos+1)+ix,b=a+1,c=a+segmentos+1,d=c+1;
+        indices.push(a,c,b,b,c,d);
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));
+    g.setAttribute("uv",new THREE.Float32BufferAttribute(uvs,2));
+    g.setIndex(indices);
+    const m=new THREE.MeshBasicMaterial({map:textura,side:THREE.DoubleSide,depthWrite:true});
+    const mesh=new THREE.Mesh(g,m);
+    mesh.renderOrder=-10;
+    mesh.visible=muestraBase.checked;
+    if(baseTerreno) {scene.remove(baseTerreno);baseTerreno.geometry.dispose();baseTerreno.material.dispose();}
+    baseTerreno=mesh;
+    scene.add(mesh);
+}
+async function cargarBaseQGIS() {
+    // GeoTIFF exportado de QGIS con georreferenciación; no se requieren
+    // coordenadas escritas manualmente ni un panel Leaflet.
+    const respuesta=await fetch("data/mapa_base.tif",{method:"HEAD"});
+    if(!respuesta.ok) return false;
+    const tif=await fromUrl("data/mapa_base.tif");
+    const img=await tif.getImage();
+    const claves=img.getGeoKeys();
+    const epsg=claves.ProjectedCSTypeGeoKey || claves.GeographicTypeGeoKey;
+    const proyeccion=epsg===3857?"EPSG:3857":epsg===4326?"EPSG:4326":
+        (epsg===103598 || epsg===0 || epsg===32700)?"ATITLAN_GTM":null;
+    // QGIS puede escribir el GTM como código de usuario 32767.
+    const crs=proyeccion || (epsg===32767?"ATITLAN_GTM":null);
+    if(!crs) throw new Error("CRS de mapa_base.tif no reconocido (exportar en EPSG:3857, EPSG:4326 o GTM).");
+    const [minX,minY,maxX,maxY]=img.getBoundingBox();
+    const maxLado=2048;
+    const escala=Math.min(1,maxLado/Math.max(img.getWidth(),img.getHeight()));
+    const w=Math.max(2,Math.round(img.getWidth()*escala));
+    const h=Math.max(2,Math.round(img.getHeight()*escala));
+    const rgb=await img.readRGB({width:w,height:h,resampleMethod:"bilinear"});
+    const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext("2d");
+    const id=ctx.createImageData(w,h);
+    const canales=Math.round(rgb.length/(w*h));
+    for(let i=0;i<w*h;i++) {
+        id.data[4*i]=rgb[canales*i];
+        id.data[4*i+1]=rgb[canales*i+1]??rgb[canales*i];
+        id.data[4*i+2]=rgb[canales*i+2]??rgb[canales*i];
+        id.data[4*i+3]=255;
+    }
+    ctx.putImageData(id,0,0);
+    const tex=new THREE.CanvasTexture(canvas);
+    tex.colorSpace=THREE.SRGBColorSpace;
+    tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+    const extEsquinas=[[minX,minY],[minX,maxY],[maxX,minY],[maxX,maxY]].map(p=>proj4(crs,"ATITLAN_GTM",p));
+    const rango=[Math.min(...extEsquinas.map(p=>p[0])),Math.min(...extEsquinas.map(p=>p[1])),Math.max(...extEsquinas.map(p=>p[0])),Math.max(...extEsquinas.map(p=>p[1]))];
+    crearPlanoBase(rango,(x,y)=>{
+        const [px,py]=proj4("ATITLAN_GTM",crs,[x,y]);
+        return [(px-minX)/(maxX-minX),(py-minY)/(maxY-minY)];
+    },tex);
+    atribucionBase.textContent="Mapa base: GeoTIFF de QGIS · Verifica atribución/licencia de la imagen fuente";
+    return true;
+}
+async function cargarBaseOSM() {
+    const rango=rangoBase(), zoom=11;
+    const esquinas=[[rango[0],rango[1]],[rango[0],rango[3]],[rango[2],rango[1]],[rango[2],rango[3]]];
+    const pixeles=esquinas.map(([x,y])=>{const [lon,lat]=desdeGTM(x,y);return mercatorPixel(lon,lat,zoom);});
+    const txMin=Math.floor(Math.min(...pixeles.map(p=>p[0]))/256);
+    const txMax=Math.floor(Math.max(...pixeles.map(p=>p[0]))/256);
+    const tyMin=Math.floor(Math.min(...pixeles.map(p=>p[1]))/256);
+    const tyMax=Math.floor(Math.max(...pixeles.map(p=>p[1]))/256);
+    const w=(txMax-txMin+1)*256,h=(tyMax-tyMin+1)*256;
+    const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext("2d");ctx.fillStyle="#e1e6db";ctx.fillRect(0,0,w,h);
+    const textura=new THREE.CanvasTexture(canvas);
+    textura.colorSpace=THREE.SRGBColorSpace;
+    textura.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+    crearPlanoBase(rango,(x,y)=>{
+        const [lon,lat]=desdeGTM(x,y);const [px,py]=mercatorPixel(lon,lat,zoom);
+        return [(px-txMin*256)/w,1-(py-tyMin*256)/h];
+    },textura);
+    // Las teselas se solicitan individualmente, sin precarga ni caché masivo.
+    const cargas=[];
+    for(let ty=tyMin;ty<=tyMax;ty++) for(let tx=txMin;tx<=txMax;tx++) {
+        cargas.push(new Promise(resolve=>{
+            const imagen=new Image();imagen.crossOrigin="anonymous";
+            imagen.onload=()=>{ctx.drawImage(imagen,(tx-txMin)*256,(ty-tyMin)*256,256,256);textura.needsUpdate=true;resolve();};
+            imagen.onerror=()=>resolve();
+            imagen.src=`https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
+        }));
+    }
+    await Promise.all(cargas);
+    atribucionBase.textContent="Mapa base: © OpenStreetMap contributors · Datos cartográficos, no imagen satelital";
+}
+async function cargarMapaBaseIntegrado() {
+    try {
+        prepararGTM();
+        try {if(await cargarBaseQGIS()) return;} catch(err) {console.warn("Mapa QGIS no cargado; mostrando OpenStreetMap:",err);}
+        await cargarBaseOSM();
+    } catch(error) {console.warn("No se pudo crear el mapa base:",error);atribucionBase.textContent="Mapa base no disponible";}
+}
+function crearEtiquetasPueblos() {
+    prepararGTM();
+    for(const p of PUEBLOS_ATITLAN) {
+        const [x,y]=aGTM(p.lat,p.lon);
+        const alt=elevacionEnGTM(x,y);
+        if(alt===null) continue;
+        const boton=document.createElement("button");
+        boton.className="townLabel";boton.type="button";boton.textContent=p.nombre;
+        boton.title=`Enfocar ${p.nombre} en el modelo`;
+        const local=gtmALocal(x,y),z=elevacionAZ(alt)+190;
+        const punto=new THREE.Vector3(local.x,local.y,z);
+        boton.addEventListener("click",()=>{
+            const distancia=Math.max(anchoTerreno,altoTerreno)*.27;
+            animarCamara(new THREE.Vector3(local.x+distancia*.55,local.y-distancia*.68,z+distancia*.65),punto.clone());
+        });
+        townLabels.appendChild(boton);
+        pueblosEnPantalla.push({punto,elemento:boton});
+    }
+}
+function actualizarPueblos3D() {
+    if(!muestraPueblos.checked) return;
+    const rect=visor.getBoundingClientRect();
+    for(const p of pueblosEnPantalla) {
+        const s=p.punto.clone().project(camera);
+        const enVista=s.z>=-1 && s.z<=1 && s.x>=-1 && s.x<=1 && s.y>=-1 && s.y<=1;
+        p.elemento.style.display=enVista?"block":"none";
+        if(enVista) {p.elemento.style.left=`${rect.left+(s.x+1)*rect.width/2}px`;p.elemento.style.top=`${rect.top+(1-s.y)*rect.height/2}px`;}
+    }
+}
+muestraBase.addEventListener("change",()=>{if(baseTerreno)baseTerreno.visible=muestraBase.checked;});
+muestraPueblos.addEventListener("change",()=>{
+    townLabels.style.display=muestraPueblos.checked?"block":"none";
 });
 
 /* ============================================================
@@ -2930,6 +2960,7 @@ function animate() {
     controls.update();
     actualizarCallout();
     actualizarEtiquetasPisos();
+    actualizarPueblos3D();
     renderer.render(scene, camera);
 }
 animate();
@@ -2940,6 +2971,9 @@ animate();
 async function iniciar() {
     try {
         await cargarDEM();
+        crearEtiquetasPueblos();
+        // Cargar en segundo plano visual: el relieve permanece usable aun sin internet.
+        cargarMapaBaseIntegrado();
         await cargarGeologia();
         await cargarLago();
         estado.textContent = "Visor listo — 1–7 geología — 8 lago — 9–13 biodiversidad";
