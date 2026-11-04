@@ -2541,27 +2541,29 @@ function cerrarCamaraLago() {
 }
 
 function encuadreCenitalLago() {
-    if (!aguaGrupo || !aguaGrupo.children.length) return null;
-    const caja = new THREE.Box3();
-    for (const mesh of aguaGrupo.children) {
-        mesh.geometry.computeBoundingBox();
-        caja.union(mesh.geometry.boundingBox);
-    }
-    if (caja.isEmpty()) return null;
-
-    const centro = new THREE.Vector3(centroLagoLocal.x, centroLagoLocal.y, nivelAguaOriginal);
-    const mitadX = Math.max(1, caja.max.x - centro.x, centro.x - caja.min.x);
-    const mitadY = Math.max(1, caja.max.y - centro.y, centro.y - caja.min.y);
+    // Enmarcar TODA la cuenca, no únicamente la geometría del lago.
+    // El terreno está centrado en (0, 0) y ocupa anchoTerreno x altoTerreno.
+    if (!terreno || !anchoTerreno || !altoTerreno) return null;
+    const centro = new THREE.Vector3(0, 0, elevacionAZ(elevMax) / 2);
     const rect = visor.getBoundingClientRect();
     const aspecto = Math.max(0.25, rect.width / Math.max(1, rect.height));
     const fovVertical = THREE.MathUtils.degToRad(camera.fov);
     const fovHorizontal = 2 * Math.atan(Math.tan(fovVertical / 2) * aspecto);
-    const distancia = 1.24 * Math.max(
-        mitadY / Math.tan(fovVertical / 2),
-        mitadX / Math.tan(fovHorizontal / 2)
+
+    // Dejar un margen alrededor de la cuenca para evitar el recorte visto
+    // anteriormente. Se contempla el relieve elevado al determinar la altura.
+    const margen = 1.13;
+    const distanciaPlano = margen * Math.max(
+        (altoTerreno / 2) / Math.tan(fovVertical / 2),
+        (anchoTerreno / 2) / Math.tan(fovHorizontal / 2)
     );
-    // Pequeña desviación del eje exacto evita singularidades en OrbitControls.
-    const pos = centro.clone().add(new THREE.Vector3(distancia * 0.00001, 0, distancia));
+    const desnivel = Math.max(0, elevacionAZ(elevMax) - centro.z);
+    const distancia = distanciaPlano + desnivel;
+
+    // La escena usa Z como eje vertical. Un desplazamiento mínimo hacia el sur
+    // fija el norte (+Y) arriba de la pantalla, evitando el giro involuntario
+    // de 90 grados que producía la aproximación anterior desde el eje X.
+    const pos = centro.clone().add(new THREE.Vector3(0, -distancia * 0.001, distancia));
     return { pos, target: centro };
 }
 
