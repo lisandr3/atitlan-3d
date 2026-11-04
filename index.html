@@ -717,6 +717,92 @@ body.lake-camera-open #lakeCameraTools { display: flex; }
 .townLabel::after {content:""; position:absolute; left:calc(50% - 4px); top:100%; border-left:4px solid transparent; border-right:4px solid transparent; border-top:6px solid #fff;}
 @media(max-width:680px){.townLabel{font-size:10px;padding:3px 5px}}
 
+
+/* Galerías integradas exclusivamente al final de la ficha lateral.
+   La escena 3D conserva todo el espacio disponible. */
+body.gallery-open #visor { top: 0; }
+#mediaSection[hidden] { display: none !important; }
+#mediaSection { padding-bottom: 12px; }
+#rockGallery,
+#rockGallery.is-visible {
+    position: static;
+    inset: auto;
+    width: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+    justify-content: stretch;
+    align-items: stretch;
+    gap: 15px;
+    margin: 0;
+    padding: 0;
+    transform: none;
+    box-shadow: none;
+    background: none;
+    opacity: 1;
+    overflow: visible;
+    pointer-events: auto;
+}
+#rockGallery:not(.is-visible) { display: none; }
+#rockGallery .rock-sample {
+    width: 100%;
+    margin: 0;
+    padding: 12px 10px 11px;
+    border: 1px solid #e0e8ec;
+    border-radius: 13px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 9px;
+    min-width: 0;
+}
+#rockGallery .rock-sample img {
+    width: 100%;
+    max-width: 350px;
+    height: auto;
+    max-height: 230px;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center;
+    filter: none;
+    mix-blend-mode: normal;
+}
+#rockGallery .rock-sample figcaption {
+    width: 100%;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.35;
+    text-shadow: none;
+    overflow-wrap: anywhere;
+}
+#rockGallery .rock-sample figcaption em {
+    font-size: 12px;
+    font-weight: 500;
+}
+#rockGallery .species-status { font-size: 10.5px; line-height: 1.4; }
+#rockGallery .species-placeholder { width: auto; height: auto; padding: 12px; border-radius: 10px; }
+@media (max-width: 900px) {
+    body.gallery-open #visor { top: 48px; }
+    #rockGallery,
+    #rockGallery.is-visible {
+        display: grid;
+        width: 100%;
+        gap: 12px;
+        padding: 0;
+        overflow: visible;
+        transform: none;
+        scroll-snap-type: none;
+        touch-action: auto;
+    }
+    #rockGallery .rock-sample { flex: initial; width: 100%; padding: 10px; }
+    #rockGallery .rock-sample img { width: 100%; height: auto; max-height: 200px; }
+    #rockGallery .rock-sample figcaption { font-size: 12px; }
+    #infoRail { overflow: hidden; }
+    #infoCard { overflow-y: auto; overscroll-behavior: contain; }
+}
+
 </style>
 
 </head>
@@ -734,7 +820,7 @@ body.lake-camera-open #lakeCameraTools { display: flex; }
     <!-- Franja dinámica de biodiversidad. En escritorio ocupa una banda
          reservada sobre el canvas; en teléfono se vuelve carrusel horizontal.
          También admite archivos nombrados por el nombre científico. -->
-    <div id="rockGallery" aria-hidden="true"></div>
+
     <div id="floorLabels" aria-hidden="true"></div>
     <div id="altLegend" aria-hidden="true">
         <div id="altLegendTitle">Pisos altitudinales</div>
@@ -756,6 +842,10 @@ body.lake-camera-open #lakeCameraTools { display: flex; }
         <section class="info-section">
             <h4 id="infoSeccion2Titulo">Suelos y vegetación</h4>
             <p id="infoEdafologia"></p>
+        </section>
+        <section id="mediaSection" class="info-section" aria-label="Galería de imágenes" hidden>
+            <h4>Ilustraciones y fotografías</h4>
+            <div id="rockGallery" aria-hidden="true"></div>
         </section>
     </div>
 </aside>
@@ -921,11 +1011,11 @@ const BIO_ESCENAS = {
         titulo: "Flora herbácea",
         resumen: "La flora herbácea cambia desde asociaciones secas próximas al lago hasta sotobosques húmedos y ambientes fríos de altura. La selección reúne especies nativas representativas de estos contrastes ecológicos.",
         especies: [
-            { nombre: "Maguey", cientifico: "Agave brachystachys", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [1], nota: "Planta adaptada a alta insolación y déficit hídrico estacional, representativa de sectores secos y rocosos de la cuenca." },
-            { nombre: "Salvia de montaña", cientifico: "Salvia lasiantha", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [2,3], nota: "Especie de ambientes montanos que aporta flores y recursos para insectos polinizadores en claros, bordes y sotobosques." },
-            { nombre: "Begonia de bosque", cientifico: "Begonia oaxacana", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [3,4], nota: "Planta asociada a microambientes húmedos y sombreados, frecuente en sitios donde la cobertura mantiene humedad y temperaturas moderadas." },
-            { nombre: "Maiántemo", cientifico: "Maianthemum flexuosum", estado: "Nativa de Mesoamérica", amenaza: false, pisos: [4,5], nota: "Elemento del sotobosque húmedo montano, favorecido por ambientes frescos, sombra y acumulación de materia orgánica." },
-            { nombre: "Lupino de montaña", cientifico: "Lupinus montanus", estado: "Nativa de tierras altas", amenaza: false, pisos: [5], nota: "Herbácea de ambientes fríos y abiertos de mayor altitud, capaz de formar parte de comunidades de cumbre y claros de montaña." }
+            { nombre: "Maguey", cientifico: "Agave brachystachys", estado: "UICN: categoría no verificada", amenaza: false, pisos: [1], nota: "Planta adaptada a alta insolación y déficit hídrico estacional, representativa de sectores secos y rocosos de la cuenca." },
+            { nombre: "Salvia de montaña", cientifico: "Salvia lasiantha", estado: "UICN: categoría no verificada", amenaza: false, pisos: [2,3], nota: "Especie de ambientes montanos que aporta flores y recursos para insectos polinizadores en claros, bordes y sotobosques." },
+            { nombre: "Begonia de bosque", cientifico: "Begonia oaxacana", estado: "UICN: categoría no verificada", amenaza: false, pisos: [3,4], nota: "Planta asociada a microambientes húmedos y sombreados, frecuente en sitios donde la cobertura mantiene humedad y temperaturas moderadas." },
+            { nombre: "Maiántemo", cientifico: "Maianthemum flexuosum", estado: "UICN: categoría no verificada", amenaza: false, pisos: [4,5], nota: "Elemento del sotobosque húmedo montano, favorecido por ambientes frescos, sombra y acumulación de materia orgánica." },
+            { nombre: "Lupino de montaña", cientifico: "Lupinus montanus", estado: "UICN: categoría no verificada", amenaza: false, pisos: [5], nota: "Herbácea de ambientes fríos y abiertos de mayor altitud, capaz de formar parte de comunidades de cumbre y claros de montaña." }
         ]
     },
     "13": {
@@ -943,17 +1033,22 @@ const BIO_ESCENAS = {
 
 
 const GEO_MUESTRAS = {
-    "1": [{ archivo: "1", nombre: "Pómez" }],
-    "2": [{ archivo: "2", nombre: "Ignimbrita" }],
-    "3": [{ archivo: "3", nombre: "Toba cristalina" }],
-    "4": [
-        { archivo: "4", nombre: "Arenisca" },
-        { archivo: "5", nombre: "Lutita" },
-        { archivo: "6", nombre: "Pizarra" }
+    "1": [{ archivo: "depositos_post_chocoyos", nombre: "Depósitos posteriores a Los Chocoyos" }],
+    "2": [
+        { archivo: "flujos_chocoyos", nombre: "Flujos piroclásticos de Los Chocoyos" },
+        { archivo: "oleadas_chocoyos", nombre: "Oleadas piroclásticas de Los Chocoyos" }
     ],
-    "5": [{ archivo: "7", nombre: "Brecha andesítica" }],
-    "6": [{ archivo: "8", nombre: "Andesita" }],
-    "7": [{ archivo: "9", nombre: "Granodiorita" }]
+    "3": [{ archivo: "toba_maria_tecun", nombre: "Toba María Tecún" }],
+    "4": [{ archivo: "relleno_caldera_ii", nombre: "Relleno sedimentario de la caldera Atitlán II" }],
+    "5": [{ archivo: "lavas_andesiticas", nombre: "Lavas andesíticas" }],
+    "6": [
+        { archivo: "tres_calderas", nombre: "Las tres calderas de Atitlán" },
+        { archivo: "formacion_atitlan_iii", nombre: "Formación de la caldera Atitlán III" }
+    ],
+    "7": [
+        { archivo: "granitos_granodioritas", nombre: "Granitos y granodioritas" },
+        { archivo: "cortes_geologicos", nombre: "Cortes geológicos de la cuenca" }
+    ]
 };
 
 /* ============================================================
@@ -975,6 +1070,7 @@ const calloutHalo = document.getElementById("calloutHalo");
 const calloutCore = document.getElementById("calloutCore");
 const sceneButtons = [...document.querySelectorAll(".scene-key")];
 const rockGallery = document.getElementById("rockGallery");
+const mediaSection = document.getElementById("mediaSection");
 const floorLabels = document.getElementById("floorLabels");
 const altLegend = document.getElementById("altLegend");
 const altLegendRows = document.getElementById("altLegendRows");
@@ -2084,32 +2180,13 @@ function nombreCientificoArchivo(texto) {
         .replace(/^_+|_+$/g, "");
 }
 
+const ARCHIVOS_ESPECIES = {
+    "Bolitoglossa franklini": "Bolitoglossa franklin.png",
+    "Odocoileus virginianus": "odocoileus virginianus.png"
+};
 function rutasEspecie(tecla, indice, especie) {
-    const urls = [];
-    const baseCientifico = nombreCientificoArchivo(especie.cientifico);
-
-    // Primero se prefieren formatos que sí conservan transparencia.
-    if (especie.archivo) {
-        const baseArchivo = especie.archivo.replace(/\.[^.]+$/, "");
-        for (const e of ["png", "PNG", "webp", "WEBP"]) {
-            urls.push(new URL(`data/${baseArchivo}.${e}`, document.baseURI).href);
-        }
-    }
-
-    const base = [
-        baseCientifico,
-        `${tecla}_${indice}`,
-        `${tecla}-${indice}`,
-        slugEspecie(especie.cientifico),
-        slugEspecie(especie.nombre)
-    ];
-    const ext = ["png", "PNG", "webp", "WEBP", "jpg", "JPG", "jpeg", "JPEG"];
-    for (const b of base) for (const e of ext) urls.push(new URL(`data/${b}.${e}`, document.baseURI).href);
-
-    // Al final se prueba el nombre exacto que ya exista en la carpeta.
-    if (especie.archivo) urls.push(new URL(`data/${especie.archivo}`, document.baseURI).href);
-
-    return [...new Set(urls)];
+    const archivo = ARCHIVOS_ESPECIES[especie.cientifico] || `${especie.cientifico}.png`;
+    return [new URL(`data/${encodeURIComponent(archivo)}`, document.baseURI).href];
 }
 
 function conVersionBio(url) {
@@ -2142,6 +2219,7 @@ function limpiarGaleria() {
     rockGallery.classList.remove("is-visible");
     rockGallery.setAttribute("aria-hidden", "true");
     rockGallery.replaceChildren();
+    mediaSection.hidden = true;
     rockGallery.style.setProperty("--gallery-count", "5");
     document.body.classList.remove("gallery-open");
 }
@@ -2153,11 +2231,12 @@ function mostrarGaleriaEspecies(tecla = null) {
 
     const token = `bio-${tecla}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     rockGallery.dataset.token = token;
+    mediaSection.hidden = false;
     rockGallery.classList.add("is-visible");
     rockGallery.setAttribute("aria-hidden", "false");
     rockGallery.dataset.count = String(cat.especies.length);
     rockGallery.style.setProperty("--gallery-count", String(cat.especies.length));
-    document.body.classList.add("gallery-open");
+    document.body.classList.remove("gallery-open");
 
     cat.especies.forEach((sp, index) => {
         const figure = document.createElement("figure");
@@ -2166,7 +2245,7 @@ function mostrarGaleriaEspecies(tecla = null) {
         const img = document.createElement("img");
         img.alt = `${sp.nombre} (${sp.cientifico})`;
         img.decoding = "async";
-        img.loading = "eager";
+        img.loading = "lazy";
         img.draggable = false;
 
         const placeholder = document.createElement("div");
@@ -2174,7 +2253,14 @@ function mostrarGaleriaEspecies(tecla = null) {
         placeholder.textContent = "Imagen pendiente";
 
         const cap = document.createElement("figcaption");
-        cap.innerHTML = `${sp.nombre}<em>${sp.cientifico}</em><span class="species-status ${sp.amenaza ? "threat" : ""}">${sp.estado}</span>`;
+        const nombre = document.createElement("strong");
+        nombre.textContent = sp.nombre;
+        const cientifico = document.createElement("em");
+        cientifico.textContent = sp.cientifico;
+        const estadoUICN = document.createElement("span");
+        estadoUICN.className = `species-status ${sp.amenaza ? "threat" : ""}`;
+        estadoUICN.textContent = sp.estado;
+        cap.append(nombre, cientifico, estadoUICN);
 
         figure.append(img, placeholder, cap);
         rockGallery.appendChild(figure);
@@ -2191,8 +2277,7 @@ function mostrarGaleriaEspecies(tecla = null) {
 }
 
 function rutasMuestraGeologica(base) {
-    const ext = ["png", "PNG", "webp", "WEBP", "jpg", "JPG", "jpeg", "JPEG"];
-    return ext.map(e => new URL(`data/${base}.${e}`, document.baseURI).href);
+    return [new URL(`data/${base}.png`, document.baseURI).href];
 }
 
 function mostrarGaleriaGeologia(tecla = null) {
@@ -2202,11 +2287,12 @@ function mostrarGaleriaGeologia(tecla = null) {
 
     const token = `geo-${tecla}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     rockGallery.dataset.token = token;
+    mediaSection.hidden = false;
     rockGallery.classList.add("is-visible");
     rockGallery.setAttribute("aria-hidden", "false");
     rockGallery.dataset.count = String(muestras.length);
     rockGallery.style.setProperty("--gallery-count", String(muestras.length));
-    document.body.classList.add("gallery-open");
+    document.body.classList.remove("gallery-open");
 
     muestras.forEach((muestra) => {
         const figure = document.createElement("figure");
@@ -2215,7 +2301,7 @@ function mostrarGaleriaGeologia(tecla = null) {
         const img = document.createElement("img");
         img.alt = muestra.nombre;
         img.decoding = "async";
-        img.loading = "eager";
+        img.loading = "lazy";
         img.draggable = false;
 
         const placeholder = document.createElement("div");
@@ -2327,8 +2413,8 @@ function activarEcologia(tecla) {
         conCallout: false
     });
 
-    // La ficha lateral ya está abierta y la franja superior ya está reservada:
-    // calculamos el encuadre con el espacio que realmente quedó para el DEM.
+    // Las imágenes están al final de la ficha lateral, no encima del relieve.
+    // Recalculamos el encuadre 3D con todo el espacio disponible.
     requestAnimationFrame(() => {
         ajustarRenderer();
         const vista = camaraEcologica();
