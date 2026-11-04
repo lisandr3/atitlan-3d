@@ -2556,22 +2556,35 @@ function cerrarCamaraLago() {
 
 function encuadreFijoLago() {
     if (!terreno || !anchoTerreno || !altoTerreno) return null;
-    // La perspectiva se toma desde el sur y arriba, con norte arriba.
-    // El punto de interés es el centro del DEM, no solo el espejo de agua.
+    // Encuadre fijo del numeral 8: vista oblicua general de la cuenca,
+    // similar a la referencia validada por el usuario. Debe mostrar
+    // el lago completo, los volcanes y las etiquetas de pueblos.
     const zMin = elevacionAZ(elevMin), zMax = elevacionAZ(elevMax);
-    const centro = new THREE.Vector3(0, 0, (zMin + zMax) * 0.5);
-    const dir = new THREE.Vector3(0.10, -0.68, 0.73).normalize();
-    const semiancho = anchoTerreno / 2, semialto = altoTerreno / 2;
-    const altura = Math.max(1, zMax - zMin);
-    const radio = Math.hypot(semiancho, semialto, altura / 2);
+    const alturaRelieve = Math.max(1, zMax - zMin);
+
+    // El blanco se desplaza ligeramente hacia el noroeste y un poco por
+    // debajo de la mitad de altura del relieve para abrir más el lago.
+    const target = new THREE.Vector3(
+        -0.05 * anchoTerreno,
+        0.02 * altoTerreno,
+        zMin + alturaRelieve * 0.33
+    );
+
+    // Dirección oblicua desde el sureste hacia el noroeste.
+    const dir = new THREE.Vector3(0.22, -0.62, 0.75).normalize();
+    const semiancho = anchoTerreno / 2;
+    const semialto = altoTerreno / 2;
+    const radio = Math.hypot(semiancho, semialto, alturaRelieve * 0.6);
     const rect = visor.getBoundingClientRect();
     const aspecto = Math.max(0.35, rect.width / Math.max(1, rect.height));
     const medioFovY = THREE.MathUtils.degToRad(camera.fov) / 2;
     const medioFovX = Math.atan(Math.tan(medioFovY) * aspecto);
     const medioFov = Math.min(medioFovY, medioFovX);
-    // Margen extra para las etiquetas de los pueblos y los extremos del relieve.
-    const distancia = 1.20 * radio / Math.sin(medioFov);
-    return {pos: centro.clone().addScaledVector(dir, distancia), target: centro};
+
+    // Más margen para conservar visibles las etiquetas de los pueblos.
+    const distancia = 1.16 * radio / Math.sin(medioFov);
+    const pos = target.clone().addScaledVector(dir, distancia);
+    return {pos, target};
 }
 
 function irACamaraFija(alTerminar = null) {
